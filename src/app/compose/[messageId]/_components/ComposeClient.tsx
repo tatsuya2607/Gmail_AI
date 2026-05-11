@@ -29,23 +29,25 @@ function Icon({ name, size = 14 }: { name: string; size?: number }) {
   let content: React.ReactNode = null;
 
   if (name === "send")
-    content = <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />;
+    content = <><path d="M22 2 11 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M22 2l-7 20-4-9-9-4z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
   else if (name === "sparkle")
-    content = <path d="M12 2l2 7h7l-5.5 4 2 7L12 16l-5.5 4 2-7L3 9h7z" fill="currentColor" />;
+    content = <><path d="M12 3v4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="M12 17v4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="M3 12h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="M17 12h4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="m5.6 5.6 2.8 2.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="m15.6 15.6 2.8 2.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="m5.6 18.4 2.8-2.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /><path d="m15.6 8.4 2.8-2.8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" /></>;
   else if (name === "refresh")
-    content = <><path d="M1 4v6h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M23 20v-6h-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
+    content = <><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M21 3v5h-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M3 21v-5h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
   else if (name === "draft")
-    content = <><path d="M12 20h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
+    content = <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M14 2v6h6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
   else if (name === "chev")
     content = <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />;
   else if (name === "check")
     content = <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />;
+  else if (name === "x")
+    content = <><path d="M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></>;
   else if (name === "search")
     content = <><circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.8" /><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></>;
   else if (name === "settings")
     content = <><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.8" /></>;
   else if (name === "template")
-    content = <><rect x="3" y="3" width="18" height="4" rx="1" stroke="currentColor" strokeWidth="1.8" /><rect x="3" y="9" width="10" height="3" rx="1" stroke="currentColor" strokeWidth="1.8" /><rect x="3" y="14" width="14" height="3" rx="1" stroke="currentColor" strokeWidth="1.8" /></>;
+    content = <><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.8" /><path d="M3 9h18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /><path d="M9 21V9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></>;
   else if (name === "check-circle")
     content = <><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M22 4L12 14.01l-3-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>;
   else if (name === "inbox")
@@ -84,6 +86,13 @@ function formatDate(dateStr: string): string {
 function parseSenderName(from: string): string {
   const m = from.match(/^"?([^"<]+)"?\s*</);
   return m ? m[1].trim() : from;
+}
+
+function getSenderInitials(from: string): string {
+  const name = parseSenderName(from);
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
 }
 
 export function ComposeClient({ message, templates, accountId, accounts }: Props) {
@@ -243,15 +252,13 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
           Gmail AI
         </div>
         <div className="path">
-          <span>inbox</span>
-          <span className="sep">/</span>
-          <span>{message.id.slice(0, 10)}</span>
-          <span className="sep">/</span>
-          <span>reply</span>
+          <span className="sep">/</span><span>inbox</span>
+          <span className="sep">/</span><span>{message.id.slice(0, 10)}</span>
+          <span className="sep">/</span><span style={{ color: "var(--fg-dim)" }}>reply</span>
         </div>
         <div className="tb-right">
-          <span><span className="kbd">⌘K</span> コマンド</span>
-          <span><span className="kbd">?</span> ヘルプ</span>
+          <span><span className="kbd">⌘</span> <span className="kbd">K</span> commands</span>
+          <span><span className="kbd">⌘</span> <span className="kbd">↩</span> generate</span>
         </div>
       </div>
 
@@ -259,12 +266,11 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
       <div className="toolbar">
         <nav className="crumbs">
           <a href="/" className="seg"><Icon name="home" size={13} /></a>
-          <a href={`/account/${encodeURIComponent(accountId)}`} className="seg">
-            <Icon name="inbox" size={13} />受信トレイ
-          </a>
+          <a href={`/account/${encodeURIComponent(accountId)}`} className="seg"><Icon name="inbox" size={13} /></a>
           <span className="seg active">
-            <Icon name="draft" size={13} />返信作成
+            <Icon name="sparkle" size={12} />Reply Composer
           </span>
+          <a href="/templates" className="seg"><Icon name="template" size={13} /></a>
         </nav>
 
         {/* Account switcher */}
@@ -305,12 +311,9 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         </div>
 
         <div className="tools-right">
-          <a href="/templates" className="icon-btn" title="テンプレート">
-            <Icon name="template" size={14} />
-          </a>
-          <button className="icon-btn" title="設定">
-            <Icon name="settings" size={14} />
-          </button>
+          <button className="icon-btn" title="検索 ⌘K"><Icon name="search" size={14} /></button>
+          <a href="/templates" className="icon-btn" title="テンプレート管理"><Icon name="template" size={14} /></a>
+          <button className="icon-btn" title="設定"><Icon name="settings" size={14} /></button>
         </div>
       </div>
 
@@ -320,9 +323,10 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         {/* Left: Source email */}
         <div className="pane">
           <div className="pane-head">
-            <span className="label"><b>元メール</b></span>
+            <span className="label">source <b>/ original message</b></span>
             <div className="ph-right">
-              <span className="tag">INBOX</span>
+              <span className="tag amber">unread</span>
+              <span className="tag">thread · 1</span>
             </div>
           </div>
           <div className="src">
@@ -330,6 +334,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
               <dt className="k">from</dt>
               <dd className="v">
                 <div className="from">
+                  <span className="avatar">{getSenderInitials(message.from)}</span>
                   <span className="name">{parseSenderName(message.from)}</span>
                 </div>
               </dd>
@@ -343,9 +348,10 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
             <div className="src-subject">{message.subject || "(件名なし)"}</div>
             <pre className="src-body">{message.body || message.snippet || "(本文なし)"}</pre>
             <div className="src-foot">
+              <span className="chip priority"><span className="swatch" />priority: normal</span>
               <span className="chip"><span className="swatch" />text/plain</span>
               {message.messageId && (
-                <span className="chip">{message.messageId.slice(0, 22)}…</span>
+                <span className="chip"><span className="swatch" />{message.messageId.slice(0, 22)}…</span>
               )}
             </div>
           </div>
@@ -353,12 +359,6 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
 
         {/* Right: AI generation */}
         <div className="pane">
-          <div className="pane-head">
-            <span className="label"><b>AI 返信生成</b></span>
-            <div className="ph-right">
-              <span className="tag">{model}</span>
-            </div>
-          </div>
           <div className="gen">
 
             {/* Instruction section */}
@@ -379,7 +379,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
                 <div className="instr-foot">
                   <span className="kbd">⌘↩</span>
                   <span style={{ color: "var(--fg-faint)" }}>で生成</span>
-                  <span className="count">{userPrompt.length} chars</span>
+                  <span className="count">{userPrompt.length}/2000</span>
                 </div>
               </div>
               {generateError && <div className="gen-error">{generateError}</div>}
@@ -433,10 +433,10 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
                   <label>モデル</label>
                   <div className="model-toggle">
                     <button className={model === "haiku" ? "on" : ""} onClick={() => setModel("haiku")}>
-                      <span className="ico haiku" />haiku
+                      <span className="ico haiku" />Haiku <span style={{ color: "var(--fg-mute)", fontSize: "10px", marginLeft: "4px" }}>軽い返信</span>
                     </button>
                     <button className={model === "sonnet" ? "on" : ""} onClick={() => setModel("sonnet")}>
-                      <span className="ico sonnet" />sonnet
+                      <span className="ico sonnet" />Sonnet <span style={{ color: "var(--fg-mute)", fontSize: "10px", marginLeft: "4px" }}>重要メール</span>
                     </button>
                   </div>
                 </div>
@@ -472,21 +472,24 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
             {/* Output area */}
             <div className="out">
               <div className="out-head">
-                <h3>返信</h3>
+                <h3>返信ドラフト · output</h3>
                 <div className="meta">
-                  {phase === "editable" && isEdited && (
-                    <span className="body-edited-pill"><Icon name="draft" size={10} />編集済み</span>
+                  {phase === "editable" && (
+                    <>
+                      {isEdited && <span className="body-edited-pill"><Icon name="draft" size={10} />edited</span>}
+                      <span>{displayedReply.length} chars</span>
+                      <span>·</span>
+                      <span>model: {model}</span>
+                    </>
                   )}
-                  {phase === "streaming" && (
-                    <span style={{ color: "var(--accent)", fontFamily: "var(--mono)", fontSize: "10.5px" }}>
-                      生成中…
-                    </span>
-                  )}
+                  {phase === "streaming" && <span>streaming…</span>}
+                  {phase === "thinking" && <span>preparing context…</span>}
+                  {phase === "idle" && <span>ready</span>}
                 </div>
               </div>
 
               <div className="subject-row">
-                <span className="subject-prefix">件名:</span>
+                <span className="subject-prefix">Subject:</span>
                 <input
                   className="subject-input"
                   type="text"
@@ -520,12 +523,9 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
               )}
 
               {phase === "idle" && (
-                <textarea
-                  className="body-edit"
-                  value=""
-                  readOnly
-                  placeholder="指示を入力して生成ボタンを押してください"
-                />
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--fg-faint)", fontFamily: "var(--mono)", fontSize: "11.5px", padding: "32px", flex: 1, border: "1px dashed var(--line)", borderRadius: "6px", marginTop: "4px" }}>
+                  指示とテンプレートを設定して「生成」を押してください
+                </div>
               )}
 
               {sendError && <div className="gen-error">{sendError}</div>}
@@ -541,9 +541,19 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
                 <Icon name="refresh" size={13} />
                 再生成
               </button>
+              <button className="btn ghost" disabled={phase !== "editable"}>
+                <Icon name="draft" size={13} />
+                下書きに戻す
+              </button>
+              <button className="btn danger-ghost" disabled={phase !== "editable"}>
+                <Icon name="x" size={13} />
+                破棄
+              </button>
               <div className="spacer" />
               <div className="meta-mini">
-                <span>To: <b>{toHeader}</b></span>
+                <span>from <b>{currentAccount?.email ?? accountId}</b></span>
+                <span>·</span>
+                <span>to <b>{toHeader}</b></span>
               </div>
               <button
                 className="btn primary"
@@ -552,6 +562,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
               >
                 <Icon name="send" size={13} />
                 送信
+                <span className="kbd-inline">⌘⇧↩</span>
               </button>
             </div>
           </div>
@@ -560,15 +571,12 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
 
       {/* ── Status bar ── */}
       <div className="statusbar">
-        <div className="sb-item">
-          <span className="dot" />
-          接続済み
-        </div>
-        <div className="sb-item">{currentAccount?.email ?? accountId}</div>
-        <div className="sb-item">
-          {model === "haiku" ? "claude-haiku-4-5-20251001" : "claude-sonnet-4-6"}
-        </div>
-        <div className="sb-item sb-right">Gmail AI Reply</div>
+        <div className="sb-item"><span className="dot" />connected · IMAP/SMTP</div>
+        <div className="sb-item">claude {model === "haiku" ? "haiku-4-5" : "sonnet-4-6"}</div>
+        <div className="sb-item">context · 1 message, 1 thread</div>
+        <div className="sb-item">tokens · out {displayedReply.length}</div>
+        <div className="sb-item sb-right">UTF-8 · ja-JP</div>
+        <div className="sb-item sb-right">v0.4.2</div>
       </div>
 
       {/* ── Toast ── */}
