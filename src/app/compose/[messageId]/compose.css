@@ -273,7 +273,7 @@
 }
 .compose-page .src-meta {
   display: grid;
-  grid-template-columns: 48px 1fr;
+  grid-template-columns: 60px 1fr;
   row-gap: 7px;
   column-gap: 10px;
   font-size: 12px;
@@ -296,6 +296,13 @@
   gap: 8px;
 }
 .compose-page .src-meta .from .name { font-weight: 600; }
+.compose-page .src-meta .from .avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  flex-shrink: 0;
+}
 .compose-page .src-subject {
   margin: 18px 0 14px;
   padding-bottom: 14px;
@@ -310,6 +317,15 @@
   font-size: 13.5px;
   line-height: 1.85;
   color: var(--fg);
+  font-family: "Noto Sans JP", var(--sans);
+}
+.compose-page .src-body .sig {
+  color: var(--fg-mute);
+  font-size: 12.5px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: block;
 }
 .compose-page .src-foot {
   margin-top: 22px;
@@ -333,8 +349,10 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--fg-mute);
 }
+.compose-page .chip.priority .swatch { background: var(--accent); }
+.compose-page .chip.has-attach .swatch { background: #fcd34d; }
 
 /* ── Right: AI generation ── */
 .compose-page .gen {
@@ -541,6 +559,17 @@
 }
 .compose-page .btn.ghost:hover { background: #161618; color: var(--fg); border-color: var(--line-2); }
 .compose-page .btn.ghost:disabled { color: var(--fg-faint); cursor: not-allowed; }
+.compose-page .btn.danger-ghost {
+  background: transparent;
+  color: #fca5a5;
+  border-color: transparent;
+}
+.compose-page .btn.danger-ghost:hover {
+  background: rgba(239,68,68,0.08);
+  color: #fca5a5;
+  border-color: rgba(239,68,68,0.25);
+}
+.compose-page .btn.danger-ghost:disabled { color: var(--fg-faint); cursor: not-allowed; }
 
 /* Ripple */
 .compose-page .ripple {
@@ -694,7 +723,7 @@
 .compose-page .statusbar {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 14px;
   padding: 0 12px;
   border-top: 1px solid var(--line);
   background: #0c0c0e;
@@ -707,13 +736,10 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 14px 0 0;
-  margin-right: 14px;
-  border-right: 1px solid var(--line);
   white-space: nowrap;
 }
-.compose-page .statusbar .sb-item:first-child { padding-left: 0; }
-.compose-page .statusbar .sb-right { margin-left: auto; border-right: none; padding-right: 0; margin-right: 0; }
+.compose-page .statusbar .sb-item:not(.sb-right) + .sb-item { padding-left: 14px; border-left: 1px solid var(--line); }
+.compose-page .statusbar .sb-right { margin-left: auto; }
 .compose-page .statusbar .dot {
   width: 6px;
   height: 6px;
@@ -725,8 +751,8 @@
 
 /* ── Dropdown ── */
 .compose-page .dropdown {
-  position: fixed;
-  z-index: 50;
+  position: absolute;
+  z-index: 30;
   background: #131316;
   border: 1px solid var(--line-2);
   border-radius: 8px;
