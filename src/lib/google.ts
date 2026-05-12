@@ -79,6 +79,7 @@ export interface GmailMessage {
   subject: string;
   date: string;
   snippet: string;
+  isUnread: boolean;
 }
 
 export interface GmailMessageDetail extends GmailMessage {
@@ -119,6 +120,7 @@ export async function listMessages(accountId: string, maxResults = 20): Promise<
         subject: get("Subject"),
         date: get("Date"),
         snippet: msg.data.snippet ?? "",
+        isUnread: msg.data.labelIds?.includes("UNREAD") ?? false,
       };
     })
   );
@@ -149,6 +151,7 @@ export async function getMessage(accountId: string, messageId: string): Promise<
     subject: get("Subject"),
     date: get("Date"),
     snippet: msg.data.snippet ?? "",
+    isUnread: msg.data.labelIds?.includes("UNREAD") ?? false,
     body,
     messageId: get("Message-ID"),
     references: get("References"),
