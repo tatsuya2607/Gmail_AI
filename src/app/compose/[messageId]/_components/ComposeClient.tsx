@@ -242,11 +242,6 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
 
       {/* ── Titlebar ── */}
       <div className="titlebar">
-        <div className="dots">
-          <i style={{ background: "#ff5f57" }} />
-          <i style={{ background: "#ffbd2e" }} />
-          <i style={{ background: "#28c840" }} />
-        </div>
         <div className="brand">
           <span className="brand-mark">G</span>
           Gmail AI

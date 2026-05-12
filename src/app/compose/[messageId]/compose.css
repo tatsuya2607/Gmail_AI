@@ -48,18 +48,6 @@
   background: linear-gradient(180deg, #131316 0%, #0e0e10 100%);
   user-select: none;
 }
-.compose-page .titlebar .dots {
-  display: flex;
-  gap: 6px;
-  margin-right: 4px;
-}
-.compose-page .titlebar .dots i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  background: #3f3f46;
-}
 .compose-page .brand {
   display: flex;
   align-items: center;

@@ -51,18 +51,6 @@
   background: linear-gradient(180deg, #131316 0%, #0e0e10 100%);
   user-select: none;
 }
-.inbox-page .titlebar .dots {
-  display: flex;
-  gap: 6px;
-  margin-right: 4px;
-}
-.inbox-page .titlebar .dots i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-  background: #3f3f46;
-}
 .inbox-page .brand {
   display: flex;
   align-items: center;
@@ -425,58 +413,7 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-.inbox-page .side .ai-bar {
-  margin: 14px 6px 0;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #0e0e10;
-}
-.inbox-page .side .ai-bar .ai-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.inbox-page .side .ai-bar .ico {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
-  background: rgba(59, 130, 246, 0.12);
-  color: #93c5fd;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.inbox-page .side .ai-bar .meta {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.inbox-page .side .ai-bar .meta b {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--fg);
-}
-.inbox-page .side .ai-bar .meta span {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--fg-mute);
-}
-.inbox-page .side .ai-bar .gauge {
-  height: 4px;
-  background: #18181b;
-  border-radius: 99px;
-  margin-top: 10px;
-  overflow: hidden;
-}
-.inbox-page .side .ai-bar .gauge i {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), #60a5fa);
-}
-
-/* ── List toolbar (filter chips + search + sort) ── */
+/* ── List toolbar (filter chips + search) ── */
 .inbox-page .list-toolbar {
   display: flex;
   align-items: center;
@@ -555,24 +492,6 @@
   border-radius: 3px;
   background: #0a0a0c;
   color: var(--fg-dim);
-}
-
-.inbox-page .sort-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  background: #0d0d0f;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  color: var(--fg-dim);
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: 11px;
-}
-.inbox-page .sort-btn:hover {
-  border-color: var(--line-2);
-  color: var(--fg);
 }
 
 /* ── Column header ── */
@@ -864,8 +783,7 @@
   }
   .inbox-page .side .grp,
   .inbox-page .nav-item .lbl,
-  .inbox-page .side .compose-btn .lbl,
-  .inbox-page .side .ai-bar {
+  .inbox-page .side .compose-btn .lbl {
     display: none;
   }
   .inbox-page .nav-item {

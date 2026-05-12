@@ -115,18 +115,6 @@ function Icon({
       return <svg {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>;
     case "inbox":
       return <svg {...p}><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>;
-    case "star":
-      return <svg {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
-    case "send":
-      return <svg {...p}><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>;
-    case "draft":
-      return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>;
-    case "trash":
-      return <svg {...p}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-    case "spam":
-      return <svg {...p}><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>;
-    case "archive":
-      return <svg {...p}><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>;
     case "sparkle":
       return <svg {...p}><path d="M12 3v4"/><path d="M12 17v4"/><path d="M3 12h4"/><path d="M17 12h4"/><path d="m5.6 5.6 2.8 2.8"/><path d="m15.6 15.6 2.8 2.8"/><path d="m5.6 18.4 2.8-2.8"/><path d="m15.6 8.4 2.8-2.8"/></svg>;
     case "search":
@@ -141,10 +129,6 @@ function Icon({
       return <svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
     case "refresh":
       return <svg {...p}><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>;
-    case "filter":
-      return <svg {...p}><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
-    case "paperclip":
-      return <svg {...p}><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>;
     case "check":
       return <svg {...p}><path d="M20 6 9 17l-5-5"/></svg>;
     default:
@@ -197,7 +181,6 @@ export function InboxClient({
 }: Props) {
   const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
-  const [folder, setFolder] = useState("inbox");
   const [query, setQuery] = useState("");
   const [acctOpen, setAcctOpen] = useState(false);
   const [acctRect, setAcctRect] = useState<DOMRect | null>(null);
@@ -237,42 +220,17 @@ export function InboxClient({
     return getGradient(a.id + a.email);
   }
 
-  const FOLDERS = [
-    { key: "inbox", icon: "inbox", label: "受信トレイ", count: messages.length },
-    { key: "starred", icon: "star", label: "スター付き", count: 0 },
-    { key: "sent", icon: "send", label: "送信済み", count: 0 },
-    { key: "drafts", icon: "draft", label: "下書き", count: 0 },
-    { key: "archive", icon: "archive", label: "アーカイブ", count: "—" },
-    { key: "spam", icon: "spam", label: "迷惑メール", count: 0 },
-    { key: "trash", icon: "trash", label: "ゴミ箱", count: "—" },
-  ] as const;
-
-  const AI_LABELS = [
-    { color: "#3b82f6", label: "取引先" },
-    { color: "#10b981", label: "社内" },
-    { color: "#a78bfa", label: "ニュースレター" },
-    { color: "#f59e0b", label: "個人" },
-    { color: "#ef4444", label: "緊急" },
-  ];
-
   return (
     <div className="inbox-page">
       {/* Titlebar */}
       <div className="titlebar">
-        <div className="dots">
-          <i />
-          <i />
-          <i />
-        </div>
         <div className="brand">
           <span className="brand-mark">G</span>
-          <span>Gemail AI</span>
+          <span>Gmail AI</span>
         </div>
         <div className="path">
           <span className="sep">/</span>
           <span style={{ color: "var(--fg-dim)" }}>inbox</span>
-          <span className="sep">/</span>
-          <span>{folder}</span>
         </div>
         <div className="right">
           <span>
@@ -293,12 +251,12 @@ export function InboxClient({
           <span className="seg active">
             <Icon name="inbox" size={12} /> Inbox
           </span>
-          <span className="seg">
+          <Link href="/compose" className="seg">
             <Icon name="sparkle" size={12} /> Reply Composer
-          </span>
-          <span className="seg">
+          </Link>
+          <Link href="/templates" className="seg">
             <Icon name="template" size={13} /> Templates
-          </span>
+          </Link>
         </div>
 
         <button
@@ -365,7 +323,7 @@ export function InboxClient({
               ))}
               <div className="sep" />
               <Link
-                href="/auth/google"
+                href="/api/auth/google"
                 className="opt"
                 onClick={() => setAcctOpen(false)}
                 style={{ color: "var(--fg-dim)" }}
@@ -414,44 +372,10 @@ export function InboxClient({
 
           <div className="grp">mailboxes</div>
           <div className="nav">
-            {FOLDERS.map(({ key, icon, label, count }) => (
-              <div
-                key={key}
-                className={"nav-item" + (folder === key ? " active" : "")}
-                onClick={() => setFolder(key)}
-              >
-                <span className="ico">
-                  <Icon name={icon} size={13} />
-                </span>
-                <span className="lbl">{label}</span>
-                <span className="count">{count}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="grp">ai labels</div>
-          <div className="nav">
-            {AI_LABELS.map(({ color, label }) => (
-              <div key={label} className="nav-item">
-                <span className="dot" style={{ background: color }} />
-                <span className="lbl">{label}</span>
-                <span className="count">0</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="ai-bar">
-            <div className="ai-bar-row">
-              <span className="ico">
-                <Icon name="sparkle" size={12} />
-              </span>
-              <div className="meta">
-                <b>AI 提案中</b>
-                <span>0 / {messages.length} 件に下書き済</span>
-              </div>
-            </div>
-            <div className="gauge">
-              <i style={{ width: "0%" }} />
+            <div className="nav-item active">
+              <span className="ico"><Icon name="inbox" size={13} /></span>
+              <span className="lbl">受信トレイ</span>
+              <span className="count">{messages.length}</span>
             </div>
           </div>
         </div>
@@ -460,7 +384,7 @@ export function InboxClient({
         <div className="pane">
           <div className="pane-head">
             <span className="label">
-              {folder} <b>/ {currentAccount.email}</b>
+              inbox <b>/ {currentAccount.email}</b>
             </span>
             <div className="right">
               <span className="tag amber">未読 {unreadCount}</span>
@@ -484,15 +408,6 @@ export function InboxClient({
             >
               未読 <span className="num">{unreadCount}</span>
             </button>
-            <button className="fchip" disabled style={{ opacity: 0.5, cursor: "default" }}>
-              <Icon name="sparkle" size={10} /> AI下書き{" "}
-              <span className="num">0</span>
-            </button>
-            <button className="fchip" disabled style={{ opacity: 0.5, cursor: "default" }}>
-              <Icon name="paperclip" size={10} /> 添付{" "}
-              <span className="num">0</span>
-            </button>
-
             <div className="search">
               <Icon name="search" size={13} />
               <input
@@ -503,10 +418,6 @@ export function InboxClient({
               />
               <span className="kbd">⌘K</span>
             </div>
-
-            <button className="sort-btn">
-              <Icon name="filter" size={11} /> sort: date
-            </button>
           </div>
 
           <div className="col-head">

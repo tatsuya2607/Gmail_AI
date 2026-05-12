@@ -15,12 +15,7 @@ export function DeleteAccountButton({ email, action, accountId }: Props) {
       }}
     >
       <input type="hidden" name="id" value={accountId} />
-      <button
-        type="submit"
-        className="text-sm text-red-500 hover:text-red-400 transition-colors"
-      >
-        削除
-      </button>
+      <button type="submit" className="btn-danger">削除</button>
     </form>
   );
 }
