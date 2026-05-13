@@ -12,7 +12,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja" className={`dark ${inter.variable} ${mono.variable}`}>
+    <html lang="ja" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
+      <head>
+        {/* Apply saved theme before first paint to prevent flash */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function(){
+            try {
+              var s = localStorage.getItem('theme');
+              var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              if (s === 'light') { document.documentElement.dataset.theme = 'light'; }
+              else if (s === 'dark') { document.documentElement.dataset.theme = 'dark'; }
+              else { document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light'; }
+            } catch(e) { document.documentElement.dataset.theme = 'dark'; }
+          })();
+        ` }} />
+      </head>
       <body className="bg-gray-950 text-gray-100 min-h-screen antialiased">
         {children}
       </body>

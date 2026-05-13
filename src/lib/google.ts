@@ -4,7 +4,7 @@ import { encrypt, decrypt } from "./crypto";
 import db from "./db";
 
 const SCOPES = [
-  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.modify",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/userinfo.profile",
@@ -80,6 +80,7 @@ export interface GmailMessage {
   date: string;
   snippet: string;
   isUnread: boolean;
+  isStarred: boolean;
 }
 
 export interface GmailMessageDetail extends GmailMessage {
@@ -88,7 +89,11 @@ export interface GmailMessageDetail extends GmailMessage {
   references: string;
 }
 
-export async function listMessages(accountId: string, maxResults = 20): Promise<GmailMessage[]> {
+export async function listMessages(
+  accountId: string,
+  maxResults = 50,
+  pageToken?: string
+): Promise<{ messages: GmailMessage[]; nextPageToken?: string }> {
   const auth = await getAuthenticatedClient(accountId);
   const gmail = google.gmail({ version: "v1", auth });
 
@@ -96,6 +101,7 @@ export async function listMessages(accountId: string, maxResults = 20): Promise<
     userId: "me",
     labelIds: ["INBOX"],
     maxResults,
+    pageToken,
   });
 
   const items = listRes.data.messages ?? [];
@@ -113,6 +119,18 @@ export async function listMessages(accountId: string, maxResults = 20): Promise<
       const get = (name: string) =>
         headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
 
+      const gmailUnread = msg.data.labelIds?.includes("UNREAD") ?? false;
+      const localRead = gmailUnread
+        ? db.prepare("SELECT 1 FROM read_messages WHERE message_id = ? AND account_id = ?")
+            .get(msg.data.id!, accountId) as unknown
+        : null;
+
+      const gmailStarred = msg.data.labelIds?.includes("STARRED") ?? false;
+      const localStarRow = db
+        .prepare("SELECT is_starred FROM starred_messages WHERE message_id = ? AND account_id = ?")
+        .get(msg.data.id!, accountId) as { is_starred: number } | undefined;
+      const isStarred = localStarRow !== undefined ? !!localStarRow.is_starred : gmailStarred;
+
       return {
         id: msg.data.id!,
         threadId: msg.data.threadId!,
@@ -120,12 +138,13 @@ export async function listMessages(accountId: string, maxResults = 20): Promise<
         subject: get("Subject"),
         date: get("Date"),
         snippet: msg.data.snippet ?? "",
-        isUnread: msg.data.labelIds?.includes("UNREAD") ?? false,
+        isUnread: gmailUnread && !localRead,
+        isStarred,
       };
     })
   );
 
-  return messages;
+  return { messages, nextPageToken: listRes.data.nextPageToken ?? undefined };
 }
 
 export async function getMessage(accountId: string, messageId: string): Promise<GmailMessageDetail> {
@@ -152,6 +171,7 @@ export async function getMessage(accountId: string, messageId: string): Promise<
     date: get("Date"),
     snippet: msg.data.snippet ?? "",
     isUnread: msg.data.labelIds?.includes("UNREAD") ?? false,
+    isStarred: msg.data.labelIds?.includes("STARRED") ?? false,
     body,
     messageId: get("Message-ID"),
     references: get("References"),
@@ -198,11 +218,29 @@ export interface SendOptions {
   threadId?: string;
 }
 
+export async function trashMessage(accountId: string, messageId: string): Promise<void> {
+  const auth = await getAuthenticatedClient(accountId);
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.trash({ userId: "me", id: messageId });
+}
+
+export async function markAsRead(accountId: string, messageId: string): Promise<void> {
+  const auth = await getAuthenticatedClient(accountId);
+  const gmail = google.gmail({ version: "v1", auth });
+  await gmail.users.messages.modify({
+    userId: "me",
+    id: messageId,
+    requestBody: { removeLabelIds: ["UNREAD"] },
+  });
+}
+
 export async function sendMessage(accountId: string, opts: SendOptions): Promise<void> {
   const auth = await getAuthenticatedClient(accountId);
   const gmail = google.gmail({ version: "v1", auth });
 
-  const subject = opts.subject.startsWith("Re: ") ? opts.subject : `Re: ${opts.subject}`;
+  const subject = opts.inReplyTo
+    ? (opts.subject.startsWith("Re:") ? opts.subject : `Re: ${opts.subject}`)
+    : opts.subject;
 
   const lines = [
     `To: ${opts.to}`,

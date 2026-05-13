@@ -1,3 +1,4 @@
+import "./home.css";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import db from "@/lib/db";
@@ -13,9 +14,7 @@ interface Account {
 async function deleteAccount(formData: FormData) {
   "use server";
   const id = formData.get("id") as string;
-  if (id) {
-    db.prepare("DELETE FROM accounts WHERE id = ?").run(id);
-  }
+  if (id) db.prepare("DELETE FROM accounts WHERE id = ?").run(id);
   redirect("/");
 }
 
@@ -25,83 +24,134 @@ export default async function Home({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-
   const accounts = db
     .prepare("SELECT id, email, name, created_at FROM accounts ORDER BY created_at ASC")
     .all() as Account[];
 
   return (
-    <main className="max-w-2xl mx-auto p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold">Gmail AI Reply</h1>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/templates"
-            className="text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            テンプレート
-          </Link>
-          <a
-            href="/api/auth/google"
-            className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-          >
-            + アカウントを追加
-          </a>
+    <div className="home-page">
+
+      {/* Titlebar */}
+      <div className="titlebar">
+        <div className="brand">
+          <span className="brand-mark">G</span>
+          Gmail AI Reply
+        </div>
+        <span className="tb-path">/</span>
+        <div className="tb-right">
+          <span><span className="kbd">⌘K</span> コマンド</span>
         </div>
       </div>
 
-      {error && (
-        <div className="mb-6 bg-red-950 border border-red-800 text-red-300 text-sm rounded-lg px-4 py-3">
-          {error === "oauth_denied" && "Google 認証がキャンセルされました。"}
-          {error === "no_email" && "メールアドレスを取得できませんでした。"}
-          {error !== "oauth_denied" && error !== "no_email" && "エラーが発生しました。"}
-        </div>
-      )}
+      {/* Main */}
+      <div className="page-main">
 
-      {accounts.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <p className="text-lg mb-2">アカウントが登録されていません</p>
-          <p className="text-sm">「アカウントを追加」から Gmail を連携してください</p>
+        {/* Page header */}
+        <div className="page-header">
+          <div className="page-title">
+            <h1>アカウント</h1>
+            <span className="badge">{accounts.length} connected</span>
+          </div>
+          <div className="header-actions">
+            <Link href="/templates" className="link-btn">テンプレート管理</Link>
+            <a href="/api/auth/google" className="btn-primary">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              アカウントを追加
+            </a>
+          </div>
         </div>
-      ) : (
-        <ul className="space-y-3">
-          {accounts.map((account) => (
-            <li
-              key={account.id}
-              className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg px-5 py-4"
-            >
-              <div className="min-w-0">
-                <Link
-                  href={`/account/${encodeURIComponent(account.id)}`}
-                  className="font-medium text-blue-400 hover:text-blue-300 truncate block"
-                >
-                  {account.email}
-                </Link>
-                {account.name && (
-                  <p className="text-sm text-gray-400 mt-0.5">{account.name}</p>
-                )}
-                <p className="text-xs text-gray-600 mt-1">
-                  追加日: {new Date(account.created_at).toLocaleDateString("ja-JP")}
-                </p>
-              </div>
 
-              <div className="flex items-center gap-4 ml-4 shrink-0">
-                <Link
-                  href={`/account/${encodeURIComponent(account.id)}`}
-                  className="text-sm text-gray-400 hover:text-white transition-colors"
-                >
-                  受信トレイ →
-                </Link>
-                <DeleteAccountButton
-                  email={account.email}
-                  action={deleteAccount}
-                  accountId={account.id}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+        {/* Error banner */}
+        {error && (
+          <div className="error-banner">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            {error === "oauth_denied" && "Google 認証がキャンセルされました。"}
+            {error === "no_email" && "メールアドレスを取得できませんでした。"}
+            {error !== "oauth_denied" && error !== "no_email" && "エラーが発生しました。"}
+          </div>
+        )}
+
+        {/* Stats */}
+        <div className="stats">
+          <div className="stat-card">
+            <div className="stat-val">{accounts.length}</div>
+            <div className="stat-label">連携アカウント</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-val">{accounts.length * 20}</div>
+            <div className="stat-label">表示可能なメール</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-val">
+              {(db.prepare("SELECT COUNT(*) as c FROM templates").get() as { c: number } | undefined)?.c ?? 0}
+            </div>
+            <div className="stat-label">テンプレート</div>
+          </div>
+        </div>
+
+        {/* Account list */}
+        {accounts.length === 0 ? (
+          <div className="empty">
+            <h2>アカウントが登録されていません</h2>
+            <p>「アカウントを追加」から Gmail を連携してください</p>
+          </div>
+        ) : (
+          <>
+            <div className="section-label">連携済みアカウント</div>
+            <ul className="account-list" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {accounts.map((account) => (
+                <li key={account.id} className="account-card">
+                  <span className="avatar">
+                    {account.email.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="acct-info">
+                    <Link
+                      href={`/account/${encodeURIComponent(account.id)}`}
+                      className="acct-email"
+                    >
+                      {account.email}
+                    </Link>
+                    {account.name && <div className="acct-name">{account.name}</div>}
+                    <div className="acct-meta">
+                      追加日: {new Date(account.created_at).toLocaleDateString("ja-JP")}
+                    </div>
+                  </div>
+                  <div className="acct-actions">
+                    <span className="status-dot" title="接続済み" />
+                    <Link
+                      href={`/account/${encodeURIComponent(account.id)}`}
+                      className="acct-link"
+                    >
+                      受信トレイ
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </Link>
+                    <DeleteAccountButton
+                      email={account.email}
+                      action={deleteAccount}
+                      accountId={account.id}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      {/* Status bar */}
+      <div className="statusbar">
+        <div className="sb-item"><span className="dot" />接続済み</div>
+        <div className="sb-item">{accounts.length} accounts</div>
+        <div className="sb-right">Gmail AI Reply</div>
+      </div>
+
+    </div>
   );
 }
