@@ -110,6 +110,8 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
   const [toastExiting, setToastExiting] = useState(false);
   const [showAcctDropdown, setShowAcctDropdown] = useState(false);
   const [showTmplDropdown, setShowTmplDropdown] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
   const [subjectLine, setSubjectLine] = useState(() => {
     const s = message.subject || "";
     return s.startsWith("Re:") ? s : `Re: ${s}`;
@@ -130,6 +132,41 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
   useEffect(() => {
     return () => { if (streamTimerRef.current) clearInterval(streamTimerRef.current); };
   }, []);
+
+  // Mark email as read when opened
+  useEffect(() => {
+    if (message.isUnread) {
+      fetch(`/api/messages/${message.id}/read`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId }),
+      }).catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Restore saved theme
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+      if (saved) setTheme(saved);
+      else setTheme("system");
+    } catch {}
+  }, []);
+
+  function applyTheme(t: "system" | "light" | "dark") {
+    setTheme(t);
+    try {
+      if (t === "system") {
+        localStorage.removeItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
+      } else {
+        localStorage.setItem("theme", t);
+        document.documentElement.dataset.theme = t;
+      }
+    } catch {}
+  }
 
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
@@ -308,7 +345,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         <div className="tools-right">
           <button className="icon-btn" title="検索 ⌘K"><Icon name="search" size={14} /></button>
           <a href="/templates" className="icon-btn" title="テンプレート管理"><Icon name="template" size={14} /></a>
-          <button className="icon-btn" title="設定"><Icon name="settings" size={14} /></button>
+          <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}><Icon name="settings" size={14} /></button>
         </div>
       </div>
 
@@ -573,6 +610,28 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         <div className="sb-item sb-right">UTF-8 · ja-JP</div>
         <div className="sb-item sb-right">v0.4.2</div>
       </div>
+
+      {/* ── Settings Modal ── */}
+      {settingsOpen && (
+        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <span>設定</span>
+              <button className="icon-btn" onClick={() => setSettingsOpen(false)} style={{ fontSize: 16, color: "var(--fg-mute)" }}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="settings-section">
+                <div className="settings-label">テーマ</div>
+                <div className="theme-toggle">
+                  <button className={theme === "system" ? "on" : ""} onClick={() => applyTheme("system")}>システム</button>
+                  <button className={theme === "light" ? "on" : ""} onClick={() => applyTheme("light")}>ライト</button>
+                  <button className={theme === "dark" ? "on" : ""} onClick={() => applyTheme("dark")}>ダーク</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Toast ── */}
       {toastVisible && (

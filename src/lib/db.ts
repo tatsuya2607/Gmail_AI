@@ -31,6 +31,44 @@ db.exec(`
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS read_messages (
+    message_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    marked_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, account_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS starred_messages (
+    message_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    is_starred INTEGER NOT NULL DEFAULT 1,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, account_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS labels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT '#3b82f6',
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS label_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    label_id INTEGER NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+    pattern TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS local_trash (
+    message_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    message_json TEXT NOT NULL,
+    trashed_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, account_id)
+  );
 `);
 
 export default db;

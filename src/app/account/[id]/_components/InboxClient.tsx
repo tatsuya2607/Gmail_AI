@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { GmailMessage } from "@/lib/google";
@@ -11,12 +11,31 @@ interface Account {
   name: string | null;
 }
 
+interface Label {
+  id: number;
+  account_id: string;
+  name: string;
+  color: string;
+  created_at: number;
+}
+
+interface LabelRule {
+  id: number;
+  label_id: number;
+  pattern: string;
+  created_at: number;
+}
+
 interface Props {
   messages: GmailMessage[];
   accounts: Account[];
   currentAccount: Account;
   accountId: string;
   fetchError: string | null;
+  initialNextPageToken?: string;
+  labels: Label[];
+  labelRules: LabelRule[];
+  initialTrashedMessages?: GmailMessage[];
 }
 
 const AVATAR_GRADIENTS = [
@@ -28,6 +47,17 @@ const AVATAR_GRADIENTS = [
   "linear-gradient(135deg, #06b6d4, #0e7490)",
   "linear-gradient(135deg, #ec4899, #be185d)",
   "linear-gradient(135deg, #84cc16, #4d7c0f)",
+];
+
+const LABEL_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
 ];
 
 function hashStr(s: string): number {
@@ -65,29 +95,28 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-function isToday(dateStr: string): boolean {
-  const d = new Date(dateStr);
-  const now = new Date();
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  );
-}
-
 function formatWhen(dateStr: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
-  if (isToday(dateStr)) {
+  const now = new Date();
+  const isToday =
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+  if (isToday) {
     return d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
   }
-  const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86400000);
   if (diffDays < 7) {
     return d.toLocaleDateString("en-US", { weekday: "short" });
   }
   return d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
+}
+
+function extractEmail(from: string): string {
+  const match = from.match(/<([^>]+)>/);
+  return (match ? match[1] : from).toLowerCase().trim();
 }
 
 function Icon({
@@ -131,6 +160,14 @@ function Icon({
       return <svg {...p}><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.3L3 16"/><path d="M3 21v-5h5"/></svg>;
     case "check":
       return <svg {...p}><path d="M20 6 9 17l-5-5"/></svg>;
+    case "star":
+      return <svg {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+    case "star-fill":
+      return <svg {...p} fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+    case "trash":
+      return <svg {...p}><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+    case "tag":
+      return <svg {...p}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>;
     default:
       return null;
   }
@@ -139,9 +176,23 @@ function Icon({
 function EmailRow({
   msg,
   accountId,
+  isLoading,
+  onNavigate,
+  isStarred,
+  onStar,
+  onToggleSelect,
+  isSelected,
+  msgLabels,
 }: {
   msg: GmailMessage;
   accountId: string;
+  isLoading: boolean;
+  onNavigate: (id: string) => void;
+  isStarred: boolean;
+  onStar: (id: string, starred: boolean) => void;
+  onToggleSelect: (id: string) => void;
+  isSelected: boolean;
+  msgLabels: Label[];
 }) {
   const { name, org } = parseSender(msg.from);
   const initials = getInitials(name || msg.from);
@@ -149,9 +200,39 @@ function EmailRow({
   const href = `/compose/${msg.id}?accountId=${encodeURIComponent(accountId)}`;
 
   return (
-    <Link href={href} className={"row" + (msg.isUnread ? " unread" : "")}>
+    <Link
+      href={href}
+      className={
+        "row" +
+        (msg.isUnread ? " unread" : "") +
+        (isLoading ? " nav-loading" : "") +
+        (isSelected ? " selected" : "")
+      }
+      onClick={(ev) => {
+        // Don't navigate if clicking interactive elements
+        if ((ev.target as HTMLElement).closest(".checkbox-area, .star-btn")) return;
+        onNavigate(msg.id);
+      }}
+    >
       <span className="accent" />
-      <span className="checkbox" onClick={(ev) => ev.preventDefault()} />
+      <span
+        role="button"
+        className={"checkbox-area" + (isSelected ? " checked" : "")}
+        onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); onToggleSelect(msg.id); }}
+      >
+        {isSelected && (
+          <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+            <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+      </span>
+      <span
+        role="button"
+        className={"star-btn" + (isStarred ? " starred" : "")}
+        onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); onStar(msg.id, !isStarred); }}
+      >
+        {isStarred ? <Icon name="star-fill" size={17} /> : <Icon name="star" size={17} />}
+      </span>
       <span
         className="avatar"
         style={{ background: grad, width: 22, height: 22, fontSize: "10.5px" }}
@@ -166,8 +247,27 @@ function EmailRow({
         <span className="subj">{msg.subject || "(件名なし)"}</span>
         <span className="snippet">{msg.snippet}</span>
       </span>
-      <span className="tags" />
-      <span className="when">{formatWhen(msg.date)}</span>
+      <span className="tags">
+        {msgLabels.map((label) => (
+          <span
+            key={label.id}
+            className="label-chip"
+            style={{
+              backgroundColor: `${label.color}22`,
+              color: label.color,
+              border: `1px solid ${label.color}55`,
+            }}
+          >
+            <span className="label-chip-dot" style={{ background: label.color }} />
+            {label.name}
+          </span>
+        ))}
+      </span>
+      {isLoading ? (
+        <span className="row-spinner" />
+      ) : (
+        <span className="when">{formatWhen(msg.date)}</span>
+      )}
     </Link>
   );
 }
@@ -178,27 +278,292 @@ export function InboxClient({
   currentAccount,
   accountId,
   fetchError,
+  initialNextPageToken,
+  labels: propLabels,
+  labelRules: propLabelRules,
+  initialTrashedMessages = [],
 }: Props) {
   const router = useRouter();
-  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [view, setView] = useState<"inbox" | "starred" | "trash">("inbox");
+  const [readFilter, setReadFilter] = useState<"all" | "unread">("all");
   const [query, setQuery] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   const [acctRect, setAcctRect] = useState<DOMRect | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [extraMessages, setExtraMessages] = useState<GmailMessage[]>([]);
+  const [nextToken, setNextToken] = useState<string | undefined>(initialNextPageToken);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [localStars, setLocalStars] = useState<Record<string, boolean>>({});
+  const [trashedMessages, setTrashedMessages] = useState<GmailMessage[]>(initialTrashedMessages);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const searchRef = useRef<HTMLInputElement>(null);
+  const lastHiddenRef = useRef<number>(0);
 
-  const unreadCount = messages.filter((m) => m.isUnread).length;
+  // Compose modal state
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBody, setComposeBody] = useState("");
+  const [composeSending, setComposeSending] = useState(false);
+  const [composeSentOk, setComposeSentOk] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
 
-  const filtered = messages.filter((m) => {
-    if (filter === "unread" && !m.isUnread) return false;
-    if (query) {
-      const hay = (m.from + m.subject + m.snippet).toLowerCase();
-      if (!hay.includes(query.toLowerCase())) return false;
+  // Settings modal state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
+
+  // Label state
+  const [activeLabel, setActiveLabel] = useState<number | null>(null);
+  const [labels, setLabels] = useState<Label[]>(propLabels);
+  const [labelRules, setLabelRules] = useState<LabelRule[]>(propLabelRules);
+  const [labelModalOpen, setLabelModalOpen] = useState(false);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState(LABEL_COLORS[0]);
+  const [expandedLabelId, setExpandedLabelId] = useState<number | null>(null);
+  const [newRulePattern, setNewRulePattern] = useState("");
+
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        lastHiddenRef.current = Date.now();
+      } else if (document.visibilityState === "visible") {
+        if (Date.now() - lastHiddenRef.current > 1500) {
+          setLoadingId(null);
+          setExtraMessages([]);
+          setNextToken(initialNextPageToken);
+          router.refresh();
+        }
+      }
     }
-    return true;
-  });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [router, initialNextPageToken]);
 
-  const todayMsgs = filtered.filter((m) => isToday(m.date));
-  const earlierMsgs = filtered.filter((m) => !isToday(m.date));
+  useEffect(() => {
+    setNextToken(initialNextPageToken);
+  }, [initialNextPageToken]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+      if (saved) setTheme(saved);
+      else setTheme("system");
+    } catch {}
+  }, []);
+
+  function handleRefresh() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setExtraMessages([]);
+    setNextToken(undefined);
+    setLoadingId(null);
+    setLocalStars({});
+    setTrashedMessages([]);
+    // Full page reload is the most reliable way to re-fetch server data
+    window.location.reload();
+  }
+
+  async function loadMore() {
+    if (!nextToken || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/messages?accountId=${encodeURIComponent(accountId)}&pageToken=${encodeURIComponent(nextToken)}`
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setExtraMessages((prev) => [...prev, ...data.messages]);
+        setNextToken(data.nextPageToken ?? undefined);
+      }
+    } catch {}
+    setLoadingMore(false);
+  }
+
+  function applyTheme(t: "system" | "light" | "dark") {
+    setTheme(t);
+    try {
+      if (t === "system") {
+        localStorage.removeItem("theme");
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
+      } else {
+        localStorage.setItem("theme", t);
+        document.documentElement.dataset.theme = t;
+      }
+    } catch {}
+  }
+
+  async function handleStar(msgId: string, starred: boolean) {
+    setLocalStars((prev) => ({ ...prev, [msgId]: starred }));
+    try {
+      await fetch(`/api/messages/${msgId}/star`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId, starred }),
+      });
+    } catch {}
+  }
+
+  function handleToggleSelect(msgId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(msgId)) next.delete(msgId);
+      else next.add(msgId);
+      return next;
+    });
+  }
+
+  async function handleTrashSelected() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    const toTrash = allMessages.filter((m) => ids.includes(m.id));
+    setTrashedMessages((prev) => [...prev, ...toTrash]);
+    setSelectedIds(new Set());
+    await Promise.all(
+      toTrash.map((msg) =>
+        fetch(`/api/messages/${msg.id}/delete`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId, messageSnapshot: msg }),
+        }).catch(() => {})
+      )
+    );
+  }
+
+  async function handleRestoreSelected() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    setTrashedMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setSelectedIds(new Set());
+    await Promise.all(
+      ids.map((id) =>
+        fetch(`/api/messages/${id}/restore`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accountId }),
+        }).catch(() => {})
+      )
+    );
+    window.location.reload();
+  }
+
+  function handlePermanentDeleteSelected() {
+    if (selectedIds.size === 0) return;
+    const ids = [...selectedIds];
+    setTrashedMessages((prev) => prev.filter((m) => !ids.includes(m.id)));
+    setSelectedIds(new Set());
+    // Messages are already in Gmail's Trash and will auto-purge after 30 days
+  }
+
+  async function handleCreateLabel() {
+    if (!newLabelName.trim()) return;
+    const tempId = -(Date.now());
+    const newLabel: Label = {
+      id: tempId,
+      account_id: accountId,
+      name: newLabelName.trim(),
+      color: newLabelColor,
+      created_at: Date.now(),
+    };
+    setLabels((prev) => [...prev, newLabel]);
+    setNewLabelName("");
+    try {
+      const res = await fetch("/api/labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId, name: newLabel.name, color: newLabel.color }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLabels((prev) => prev.map((l) => (l.id === tempId ? { ...l, id: data.id } : l)));
+      } else {
+        setLabels((prev) => prev.filter((l) => l.id !== tempId));
+      }
+    } catch {
+      setLabels((prev) => prev.filter((l) => l.id !== tempId));
+    }
+  }
+
+  async function handleDeleteLabel(labelId: number) {
+    setLabels((prev) => prev.filter((l) => l.id !== labelId));
+    setLabelRules((prev) => prev.filter((r) => r.label_id !== labelId));
+    if (activeLabel === labelId) {
+      setActiveLabel(null);
+    }
+    try {
+      await fetch(`/api/labels/${labelId}`, { method: "DELETE" });
+    } catch {}
+  }
+
+  async function handleAddRule(labelId: number, pattern: string) {
+    if (!pattern.trim()) return;
+    const tempId = -(Date.now());
+    const newRule: LabelRule = {
+      id: tempId,
+      label_id: labelId,
+      pattern: pattern.trim().toLowerCase(),
+      created_at: Date.now(),
+    };
+    setLabelRules((prev) => [...prev, newRule]);
+    setNewRulePattern("");
+    try {
+      const res = await fetch(`/api/labels/${labelId}/rules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pattern: newRule.pattern }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLabelRules((prev) =>
+          prev.map((r) => (r.id === tempId ? { ...r, id: data.id } : r))
+        );
+      } else {
+        setLabelRules((prev) => prev.filter((r) => r.id !== tempId));
+      }
+    } catch {
+      setLabelRules((prev) => prev.filter((r) => r.id !== tempId));
+    }
+  }
+
+  async function handleDeleteRule(labelId: number, ruleId: number) {
+    setLabelRules((prev) => prev.filter((r) => r.id !== ruleId));
+    try {
+      await fetch(`/api/labels/${labelId}/rules/${ruleId}`, { method: "DELETE" });
+    } catch {}
+  }
+
+  async function handleNewEmailSend() {
+    if (!composeTo.trim() || !composeSubject.trim() || !composeBody.trim() || composeSending) return;
+    setComposeSending(true);
+    setComposeError(null);
+    try {
+      const res = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId,
+          to: composeTo.trim(),
+          subject: composeSubject.trim(),
+          replyBody: composeBody.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setComposeSentOk(true);
+      setTimeout(() => {
+        setComposeOpen(false);
+        setComposeSentOk(false);
+        setComposeTo("");
+        setComposeSubject("");
+        setComposeBody("");
+      }, 1500);
+    } catch (err) {
+      setComposeError(err instanceof Error ? err.message : "送信に失敗しました");
+    } finally {
+      setComposeSending(false);
+    }
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -206,10 +571,110 @@ export function InboxClient({
         e.preventDefault();
         searchRef.current?.focus();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "n") {
+        e.preventDefault();
+        setComposeOpen(true);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  const trashedIds = useMemo(
+    () => new Set(trashedMessages.map((m) => m.id)),
+    [trashedMessages]
+  );
+
+  const allMessages = useMemo(
+    () => [...messages, ...extraMessages].filter((m) => !trashedIds.has(m.id)),
+    [messages, extraMessages, trashedIds]
+  );
+
+  const messageLabelMap = useMemo(() => {
+    const map = new Map<string, Label[]>();
+    for (const msg of [...allMessages, ...trashedMessages]) {
+      const email = extractEmail(msg.from);
+      const domain = email.split("@")[1] ?? "";
+      const matching = labels.filter((label) => {
+        const rules = labelRules.filter((r) => r.label_id === label.id);
+        return rules.some((r) => r.pattern === email || r.pattern === domain);
+      });
+      if (matching.length > 0) map.set(msg.id, matching);
+    }
+    return map;
+  }, [allMessages, labels, labelRules]);
+
+  const unreadCount = allMessages.filter((m) => m.isUnread).length;
+
+  const starredCount = allMessages.filter((m) => {
+    const starred = m.id in localStars ? localStars[m.id] : m.isStarred;
+    return starred;
+  }).length;
+
+  const labelCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    for (const label of labels) {
+      const rules = labelRules.filter((r) => r.label_id === label.id);
+      counts[label.id] = allMessages.filter((m) => {
+        const email = extractEmail(m.from);
+        const domain = email.split("@")[1] ?? "";
+        return rules.some((r) => r.pattern === email || r.pattern === domain);
+      }).length;
+    }
+    return counts;
+  }, [allMessages, labels, labelRules]);
+
+  // View-level filter (inbox / starred / label), before read-filter
+  const viewFiltered = allMessages.filter((m) => {
+    if (view === "trash") return false;
+    const starred = m.id in localStars ? localStars[m.id] : m.isStarred;
+
+    if (activeLabel !== null) {
+      const rules = labelRules.filter((r) => r.label_id === activeLabel);
+      const email = extractEmail(m.from);
+      const domain = email.split("@")[1] ?? "";
+      if (!rules.some((r) => r.pattern === email || r.pattern === domain)) return false;
+    } else if (view === "starred") {
+      if (!starred) return false;
+    }
+
+    if (query) {
+      const hay = (m.from + m.subject + m.snippet).toLowerCase();
+      if (!hay.includes(query.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  // Secondary read filter applied on top of view filter
+  const filtered = readFilter === "unread"
+    ? viewFiltered.filter((m) => m.isUnread)
+    : viewFiltered;
+
+  const viewUnreadCount = viewFiltered.filter((m) => m.isUnread).length;
+
+  // Trash view list
+  const trashFiltered = trashedMessages.filter((m) => {
+    if (readFilter === "unread" && !m.isUnread) return false;
+    if (query) {
+      const hay = (m.from + m.subject + m.snippet).toLowerCase();
+      if (!hay.includes(query.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const displayMessages = view === "trash" ? trashFiltered : filtered;
+
+  const allInViewSelected =
+    displayMessages.length > 0 && displayMessages.every((m) => selectedIds.has(m.id));
+  const someSelected = selectedIds.size > 0 && !allInViewSelected;
+
+  function handleSelectAll() {
+    if (allInViewSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayMessages.map((m) => m.id)));
+    }
+  }
 
   function acctInitials(a: Account): string {
     if (a.name) return getInitials(a.name);
@@ -219,6 +684,10 @@ export function InboxClient({
   function acctGradient(a: Account): string {
     return getGradient(a.id + a.email);
   }
+
+  const inboxNavActive = activeLabel === null && view === "inbox";
+  const starredNavActive = activeLabel === null && view === "starred";
+  const trashNavActive = view === "trash";
 
   return (
     <div className="inbox-page">
@@ -232,14 +701,6 @@ export function InboxClient({
           <span className="sep">/</span>
           <span style={{ color: "var(--fg-dim)" }}>inbox</span>
         </div>
-        <div className="right">
-          <span>
-            <span className="kbd">⌘</span> <span className="kbd">K</span> search
-          </span>
-          <span>
-            <span className="kbd">⌘</span> <span className="kbd">N</span> compose
-          </span>
-        </div>
       </div>
 
       {/* Toolbar */}
@@ -251,9 +712,6 @@ export function InboxClient({
           <span className="seg active">
             <Icon name="inbox" size={12} /> Inbox
           </span>
-          <Link href="/compose" className="seg">
-            <Icon name="sparkle" size={12} /> Reply Composer
-          </Link>
           <Link href="/templates" className="seg">
             <Icon name="template" size={13} /> Templates
           </Link>
@@ -351,10 +809,10 @@ export function InboxClient({
         )}
 
         <div className="tools-right">
-          <button className="icon-btn" title="更新" onClick={() => router.refresh()}>
-            <Icon name="refresh" />
+          <button className="icon-btn" title="更新" onClick={handleRefresh} disabled={isRefreshing}>
+            <Icon name="refresh" className={isRefreshing ? "spin" : ""} />
           </button>
-          <button className="icon-btn" title="設定">
+          <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}>
             <Icon name="settings" />
           </button>
         </div>
@@ -364,70 +822,180 @@ export function InboxClient({
       <div className="main">
         {/* Sidebar */}
         <div className="pane side">
-          <button className="compose-btn">
+          <button className="compose-btn" onClick={() => setComposeOpen(true)}>
             <Icon name="plus" size={13} />
             <span className="lbl">作成</span>
-            <span className="kbd-inline">⌘N</span>
           </button>
 
           <div className="grp">mailboxes</div>
           <div className="nav">
-            <div className="nav-item active">
+            <div
+              className={"nav-item" + (inboxNavActive ? " active" : "")}
+              onClick={() => { setView("inbox"); setActiveLabel(null); }}
+            >
               <span className="ico"><Icon name="inbox" size={13} /></span>
               <span className="lbl">受信トレイ</span>
-              <span className="count">{messages.length}</span>
+              <span className="count">{allMessages.length}</span>
+            </div>
+            <div
+              className={"nav-item" + (starredNavActive ? " active" : "")}
+              onClick={() => { setView("starred"); setActiveLabel(null); }}
+            >
+              <span className="ico"><Icon name="star" size={13} /></span>
+              <span className="lbl">スター付き</span>
+              <span className="count">{starredCount}</span>
+            </div>
+            <div
+              className={"nav-item trash-nav" + (trashNavActive ? " active" : "")}
+              onClick={() => { setView("trash"); setActiveLabel(null); setSelectedIds(new Set()); }}
+            >
+              <span className="ico"><Icon name="trash" size={13} /></span>
+              <span className="lbl">ゴミ箱</span>
+              {trashedMessages.length > 0 && (
+                <span className="count">{trashedMessages.length}</span>
+              )}
+            </div>
+          </div>
+
+          {labels.length > 0 && (
+            <>
+              <div className="grp">labels</div>
+              <div className="nav">
+                {labels.map((label) => (
+                  <div
+                    key={label.id}
+                    className={"nav-item" + (activeLabel === label.id ? " active" : "")}
+                    onClick={() => { setActiveLabel(label.id); setView("inbox"); }}
+                  >
+                    <span className="ico">
+                      <span className="nav-label-dot" style={{ background: label.color }} />
+                    </span>
+                    <span className="lbl">{label.name}</span>
+                    <span className="count">{labelCounts[label.id] ?? 0}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          <div className="nav" style={{ marginTop: 4 }}>
+            <div className="nav-item label-manage-item" onClick={() => setLabelModalOpen(true)}>
+              <span className="ico"><Icon name="tag" size={12} /></span>
+              <span className="lbl">ラベルを管理</span>
             </div>
           </div>
         </div>
 
         {/* List pane */}
         <div className="pane">
-          <div className="pane-head">
+          <div className={"pane-head" + (view === "trash" ? " trash-head" : "")}>
             <span className="label">
-              inbox <b>/ {currentAccount.email}</b>
+              {view === "trash" ? (
+                <>ゴミ箱 <b>/ {currentAccount.email}</b></>
+              ) : (
+                <>inbox <b>/ {currentAccount.email}</b></>
+              )}
             </span>
             <div className="right">
-              <span className="tag amber">未読 {unreadCount}</span>
-              <span className="tag blue">AI 0</span>
-              <span className="tag zinc">
-                {filtered.length}/{messages.length}
-              </span>
+              {view === "trash" ? (
+                <span className="tag zinc">{trashFiltered.length}件</span>
+              ) : (
+                <>
+                  <span className="tag amber">未読 {unreadCount}件</span>
+                  <span className="tag zinc">
+                    表示 {filtered.length} / 読込 {allMessages.length}{nextToken ? "+" : ""}件
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="list-toolbar">
-            <button
-              className={"fchip" + (filter === "all" ? " on" : "")}
-              onClick={() => setFilter("all")}
+          <div className={"list-toolbar" + (selectedIds.size > 0 ? " selecting" : "")}>
+            {/* Select-all checkbox — always visible */}
+            <span
+              role="button"
+              className={
+                "select-all-box" +
+                (allInViewSelected ? " checked" : someSelected ? " indeterminate" : "")
+              }
+              onClick={handleSelectAll}
+              title={allInViewSelected ? "全選択解除" : "全選択"}
             >
-              すべて <span className="num">{messages.length}</span>
-            </button>
-            <button
-              className={"fchip" + (filter === "unread" ? " on" : "")}
-              onClick={() => setFilter("unread")}
-            >
-              未読 <span className="num">{unreadCount}</span>
-            </button>
-            <div className="search">
-              <Icon name="search" size={13} />
-              <input
-                ref={searchRef}
-                placeholder="差出人・件名・本文を検索…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              <span className="kbd">⌘K</span>
-            </div>
-          </div>
+              {allInViewSelected && (
+                <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                  <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+              {someSelected && !allInViewSelected && (
+                <span className="select-all-dash" />
+              )}
+            </span>
 
-          <div className="col-head">
-            <span />
-            <span />
-            <span />
-            <span>from</span>
-            <span>subject · preview</span>
-            <span style={{ textAlign: "right" }}>labels · ai</span>
-            <span style={{ textAlign: "right" }}>received</span>
+            {selectedIds.size > 0 ? (
+              <>
+                <span className="sel-count">{selectedIds.size}件選択中</span>
+                <button className="sel-cancel" onClick={() => setSelectedIds(new Set())}>
+                  キャンセル
+                </button>
+                {view === "trash" ? (
+                  <>
+                    <button className="sel-restore" onClick={handleRestoreSelected}>
+                      <Icon name="refresh" size={13} />
+                      元に戻す
+                    </button>
+                    <button className="sel-delete" onClick={handlePermanentDeleteSelected}>
+                      <Icon name="trash" size={13} />
+                      完全削除
+                    </button>
+                  </>
+                ) : (
+                  <button className="sel-delete" onClick={handleTrashSelected}>
+                    <Icon name="trash" size={13} />
+                    ゴミ箱へ移動
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  className={"fchip" + (readFilter === "all" ? " on" : "")}
+                  onClick={() => setReadFilter("all")}
+                >
+                  すべて <span className="num">{viewFiltered.length}</span>
+                </button>
+                <button
+                  className={"fchip" + (readFilter === "unread" ? " on" : "")}
+                  onClick={() => setReadFilter("unread")}
+                >
+                  未読 <span className="num">{viewUnreadCount}</span>
+                </button>
+                {activeLabel !== null && (
+                  <span className="active-label-chip">
+                    <span
+                      className="label-chip-dot"
+                      style={{ background: labels.find((l) => l.id === activeLabel)?.color }}
+                    />
+                    {labels.find((l) => l.id === activeLabel)?.name}
+                    <span
+                      role="button"
+                      style={{ marginLeft: 4, cursor: "pointer", opacity: 0.6 }}
+                      onClick={() => { setActiveLabel(null); setView("inbox"); }}
+                    >
+                      ✕
+                    </span>
+                  </span>
+                )}
+                <div className="search">
+                  <Icon name="search" size={13} />
+                  <input
+                    ref={searchRef}
+                    placeholder="差出人・件名・本文を検索…"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           {fetchError ? (
@@ -444,29 +1012,22 @@ export function InboxClient({
             </div>
           ) : (
             <div className="list">
-              {todayMsgs.length > 0 && (
-                <div className="day-sep">
-                  <span>today</span>
-                  <span className="line" />
-                  <span className="count">{todayMsgs.length} 件</span>
-                </div>
-              )}
-              {todayMsgs.map((m) => (
-                <EmailRow key={m.id} msg={m} accountId={accountId} />
+              {displayMessages.map((m) => (
+                <EmailRow
+                  key={m.id}
+                  msg={m}
+                  accountId={accountId}
+                  isLoading={loadingId === m.id}
+                  onNavigate={view === "trash" ? () => {} : setLoadingId}
+                  isStarred={m.id in localStars ? localStars[m.id] : m.isStarred}
+                  onStar={handleStar}
+                  onToggleSelect={handleToggleSelect}
+                  isSelected={selectedIds.has(m.id)}
+                  msgLabels={messageLabelMap.get(m.id) ?? []}
+                />
               ))}
 
-              {earlierMsgs.length > 0 && (
-                <div className="day-sep">
-                  <span>earlier</span>
-                  <span className="line" />
-                  <span className="count">{earlierMsgs.length} 件</span>
-                </div>
-              )}
-              {earlierMsgs.map((m) => (
-                <EmailRow key={m.id} msg={m} accountId={accountId} />
-              ))}
-
-              {filtered.length === 0 && (
+              {displayMessages.length === 0 && (
                 <div
                   style={{
                     padding: 40,
@@ -476,7 +1037,19 @@ export function InboxClient({
                     fontSize: 12,
                   }}
                 >
-                  該当するメッセージはありません
+                  {view === "trash" ? "ゴミ箱は空です" : "該当するメッセージはありません"}
+                </div>
+              )}
+
+              {nextToken && view !== "trash" && (
+                <div className="load-more-wrap">
+                  <button
+                    className="load-more-btn"
+                    disabled={loadingMore}
+                    onClick={loadMore}
+                  >
+                    {loadingMore ? "読み込み中…" : `もっと読み込む · ${allMessages.length}件表示中`}
+                  </button>
                 </div>
               )}
             </div>
@@ -487,16 +1060,193 @@ export function InboxClient({
       {/* Statusbar */}
       <div className="statusbar">
         <span className="item">
-          <span className="dot" /> connected · IMAP/SMTP
+          <span className="dot" /> connected
         </span>
-        <span className="item">claude haiku-4-5</span>
-        <span className="item">
-          syncing · {messages.length} messages
-        </span>
-        <span className="item">unread · {unreadCount}</span>
-        <span className="item right">UTF-8 · ja-JP</span>
-        <span className="item right">v0.4.2-dev</span>
       </div>
+
+      {/* Compose Modal */}
+      {composeOpen && (
+        <div className="modal-backdrop" onClick={() => { setComposeOpen(false); setComposeError(null); setComposeSentOk(false); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <span>新規メール作成</span>
+              <button className="icon-btn" style={{ fontSize: 16, color: "var(--fg-mute)" }} onClick={() => setComposeOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label>To</label>
+                <input type="email" value={composeTo} onChange={(e) => setComposeTo(e.target.value)} placeholder="recipient@example.com" />
+              </div>
+              <div className="field">
+                <label>件名</label>
+                <input type="text" value={composeSubject} onChange={(e) => setComposeSubject(e.target.value)} placeholder="件名を入力..." />
+              </div>
+              <div className="field">
+                <label>本文</label>
+                <textarea value={composeBody} onChange={(e) => setComposeBody(e.target.value)} placeholder="メール本文を入力..." rows={8} />
+              </div>
+              {composeError && <div className="modal-error">{composeError}</div>}
+              {composeSentOk && <div className="modal-success">送信しました</div>}
+            </div>
+            <div className="modal-foot">
+              <button className="modal-btn-ghost" onClick={() => setComposeOpen(false)}>キャンセル</button>
+              <button
+                className="modal-btn-primary"
+                disabled={!composeTo.trim() || !composeSubject.trim() || !composeBody.trim() || composeSending}
+                onClick={handleNewEmailSend}
+              >
+                {composeSending ? "送信中…" : "送信"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {settingsOpen && (
+        <div className="modal-backdrop" onClick={() => setSettingsOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <span>設定</span>
+              <button className="icon-btn" style={{ fontSize: 16, color: "var(--fg-mute)" }} onClick={() => setSettingsOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="settings-section">
+                <div className="settings-label">テーマ</div>
+                <div className="theme-toggle">
+                  <button className={theme === "system" ? "on" : ""} onClick={() => applyTheme("system")}>システム</button>
+                  <button className={theme === "light" ? "on" : ""} onClick={() => applyTheme("light")}>ライト</button>
+                  <button className={theme === "dark" ? "on" : ""} onClick={() => applyTheme("dark")}>ダーク</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Label Modal */}
+      {labelModalOpen && (
+        <div className="modal-backdrop" onClick={() => { setLabelModalOpen(false); setExpandedLabelId(null); setNewRulePattern(""); }}>
+          <div className="modal modal-label" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <span>ラベルの管理</span>
+              <button className="icon-btn" style={{ fontSize: 16, color: "var(--fg-mute)" }} onClick={() => { setLabelModalOpen(false); setExpandedLabelId(null); setNewRulePattern(""); }}>✕</button>
+            </div>
+            <div className="modal-body">
+              {/* Create new label */}
+              <div className="modal-section-title">新しいラベル</div>
+              <div className="label-create-row">
+                <input
+                  className="label-name-input"
+                  placeholder="ラベル名..."
+                  value={newLabelName}
+                  onChange={(e) => setNewLabelName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && newLabelName.trim()) handleCreateLabel(); }}
+                />
+                <div className="color-picker">
+                  {LABEL_COLORS.map((c) => (
+                    <span
+                      key={c}
+                      role="button"
+                      className={"color-swatch" + (newLabelColor === c ? " selected" : "")}
+                      style={{ background: c }}
+                      onClick={() => setNewLabelColor(c)}
+                    />
+                  ))}
+                </div>
+                <button
+                  className="modal-btn-primary"
+                  disabled={!newLabelName.trim()}
+                  onClick={handleCreateLabel}
+                >
+                  作成
+                </button>
+              </div>
+
+              {/* Existing labels */}
+              {labels.length > 0 && (
+                <>
+                  <div className="modal-section-title" style={{ marginTop: 16 }}>既存のラベル</div>
+                  <div className="label-list">
+                    {labels.map((label) => {
+                      const rules = labelRules.filter((r) => r.label_id === label.id);
+                      const isExpanded = expandedLabelId === label.id;
+                      return (
+                        <div key={label.id} className="label-accordion">
+                          <div className="label-accordion-head">
+                            <span className="label-dot" style={{ background: label.color }} />
+                            <span className="label-acc-name">{label.name}</span>
+                            <span className="label-rule-count">{rules.length} ルール</span>
+                            <span
+                              role="button"
+                              className={"label-expand-btn" + (isExpanded ? " open" : "")}
+                              onClick={() => {
+                                setExpandedLabelId(isExpanded ? null : label.id);
+                                setNewRulePattern("");
+                              }}
+                            >
+                              <Icon name="chev" size={12} />
+                            </span>
+                            <span
+                              role="button"
+                              className="label-delete-btn"
+                              onClick={() => handleDeleteLabel(label.id)}
+                            >
+                              <Icon name="trash" size={12} />
+                            </span>
+                          </div>
+                          {isExpanded && (
+                            <div className="label-accordion-body">
+                              {rules.length === 0 && (
+                                <div className="rule-empty">パターンが登録されていません</div>
+                              )}
+                              <div className="rule-list">
+                                {rules.map((rule) => (
+                                  <div key={rule.id} className="rule-item">
+                                    <span className="rule-pattern">{rule.pattern}</span>
+                                    <span
+                                      role="button"
+                                      className="rule-delete"
+                                      onClick={() => handleDeleteRule(label.id, rule.id)}
+                                    >
+                                      ✕
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="rule-add-row">
+                                <input
+                                  className="rule-input"
+                                  placeholder="user@example.com または example.com"
+                                  value={newRulePattern}
+                                  onChange={(e) => setNewRulePattern(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && newRulePattern.trim()) {
+                                      handleAddRule(label.id, newRulePattern);
+                                    }
+                                  }}
+                                />
+                                <button
+                                  className="modal-btn-primary"
+                                  style={{ padding: "5px 12px", fontSize: 12 }}
+                                  disabled={!newRulePattern.trim()}
+                                  onClick={() => handleAddRule(label.id, newRulePattern)}
+                                >
+                                  追加
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

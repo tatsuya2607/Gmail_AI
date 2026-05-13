@@ -196,3 +196,23 @@
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--good); box-shadow: 0 0 6px rgba(16,185,129,.55);
 }
+
+/* ── Light theme ── */
+html[data-theme="light"] .home-page {
+  --bg: #f8f9fa;
+  --panel: #ffffff;
+  --panel-2: #f0f0f2;
+  --line: #e4e4e7;
+  --line-2: #d4d4d8;
+  --fg: #111113;
+  --fg-dim: #3f3f46;
+  --fg-mute: #71717a;
+  --fg-faint: #a1a1aa;
+  --accent: #2563eb;
+  --accent-s: rgba(37, 99, 235, 0.1);
+  --good: #059669;
+}
+html[data-theme="light"] .home-page .titlebar {
+  background: linear-gradient(180deg, #f8f8fa 0%, #f3f3f5 100%);
+}
+html[data-theme="light"] .home-page .kbd { background: #ebebed; color: var(--fg-dim); border-color: var(--line-2); }
