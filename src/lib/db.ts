@@ -69,6 +69,23 @@ db.exec(`
     trashed_at INTEGER NOT NULL,
     PRIMARY KEY (message_id, account_id)
   );
+
+  CREATE TABLE IF NOT EXISTS message_list_cache (
+    account_id TEXT NOT NULL,
+    page_key TEXT NOT NULL DEFAULT '',
+    messages_json TEXT NOT NULL,
+    next_page_token TEXT,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, page_key)
+  );
+
+  CREATE TABLE IF NOT EXISTS message_detail_cache (
+    message_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    detail_json TEXT NOT NULL,
+    fetched_at INTEGER NOT NULL,
+    PRIMARY KEY (message_id, account_id)
+  );
 `);
 
 export default db;

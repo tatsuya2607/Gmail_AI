@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, gmail_v1 } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { encrypt, decrypt } from "./crypto";
 import db from "./db";
@@ -84,16 +84,64 @@ export interface GmailMessage {
 }
 
 export interface GmailMessageDetail extends GmailMessage {
-  body: string;
-  messageId: string; // Message-ID header value
+  body: string;       // plain text — used by AI
+  htmlBody?: string;  // raw HTML — used for display
+  messageId: string;  // Message-ID header value
   references: string;
+}
+
+// ── キャッシュ TTL: 3分 ──
+const LIST_CACHE_TTL = 3 * 60 * 1000;
+
+type ListCacheRow = {
+  messages_json: string;
+  next_page_token: string | null;
+  fetched_at: number;
+};
+
+function applyLocalOverrides(messages: GmailMessage[], accountId: string): GmailMessage[] {
+  const starStmt = db.prepare(
+    "SELECT is_starred FROM starred_messages WHERE message_id = ? AND account_id = ?"
+  );
+  const readStmt = db.prepare(
+    "SELECT 1 FROM read_messages WHERE message_id = ? AND account_id = ?"
+  );
+  return messages.map((m) => {
+    const starRow = starStmt.get(m.id, accountId) as { is_starred: number } | undefined;
+    const readRow = m.isUnread ? readStmt.get(m.id, accountId) : null;
+    return {
+      ...m,
+      isStarred: starRow !== undefined ? !!starRow.is_starred : m.isStarred,
+      isUnread: m.isUnread && !readRow,
+    };
+  });
 }
 
 export async function listMessages(
   accountId: string,
   maxResults = 50,
-  pageToken?: string
+  pageToken?: string,
+  opts: { forceRefresh?: boolean } = {}
 ): Promise<{ messages: GmailMessage[]; nextPageToken?: string }> {
+  const pageKey = pageToken ?? "";
+  const now = Date.now();
+
+  // キャッシュから返す
+  if (!opts.forceRefresh) {
+    const cached = db.prepare(
+      "SELECT messages_json, next_page_token, fetched_at FROM message_list_cache WHERE account_id = ? AND page_key = ?"
+    ).get(accountId, pageKey) as ListCacheRow | undefined;
+
+    if (cached && now - cached.fetched_at < LIST_CACHE_TTL) {
+      const base = JSON.parse(cached.messages_json) as GmailMessage[];
+      return {
+        messages: applyLocalOverrides(base, accountId),
+        nextPageToken: cached.next_page_token ?? undefined,
+      };
+    }
+  }
+
+  // Gmail API からフェッチ
   const auth = await getAuthenticatedClient(accountId);
   const gmail = google.gmail({ version: "v1", auth });
 
@@ -144,10 +192,23 @@ export async function listMessages(
     })
   );
 
-  return { messages, nextPageToken: listRes.data.nextPageToken ?? undefined };
+  const nextPageToken = listRes.data.nextPageToken ?? undefined;
+
+  // キャッシュに保存
+  db.prepare(
+    "INSERT OR REPLACE INTO message_list_cache (account_id, page_key, messages_json, next_page_token, fetched_at) VALUES (?, ?, ?, ?, ?)"
+  ).run(accountId, pageKey, JSON.stringify(messages), nextPageToken ?? null, now);
+
+  return { messages, nextPageToken };
 }
 
 export async function getMessage(accountId: string, messageId: string): Promise<GmailMessageDetail> {
+  // メール本文はキャッシュから即返す（内容は変わらないため TTL なし）
+  const cached = db.prepare(
+    "SELECT detail_json FROM message_detail_cache WHERE message_id = ? AND account_id = ?"
+  ).get(messageId, accountId) as { detail_json: string } | undefined;
+  if (cached) return JSON.parse(cached.detail_json) as GmailMessageDetail;
+
   const auth = await getAuthenticatedClient(accountId);
   const gmail = google.gmail({ version: "v1", auth });
 
@@ -161,9 +222,9 @@ export async function getMessage(accountId: string, messageId: string): Promise<
   const get = (name: string) =>
     headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ?? "";
 
-  const body = extractBody(msg.data.payload);
+  const { text: body, html: htmlBody } = extractBodies(msg.data.payload);
 
-  return {
+  const detail: GmailMessageDetail = {
     id: msg.data.id!,
     threadId: msg.data.threadId!,
     from: get("From"),
@@ -173,34 +234,61 @@ export async function getMessage(accountId: string, messageId: string): Promise<
     isUnread: msg.data.labelIds?.includes("UNREAD") ?? false,
     isStarred: msg.data.labelIds?.includes("STARRED") ?? false,
     body,
+    htmlBody,
     messageId: get("Message-ID"),
     references: get("References"),
   };
+
+  // キャッシュに保存
+  db.prepare(
+    "INSERT OR REPLACE INTO message_detail_cache (message_id, account_id, detail_json, fetched_at) VALUES (?, ?, ?, ?)"
+  ).run(messageId, accountId, JSON.stringify(detail), Date.now());
+
+  return detail;
 }
 
-function extractBody(payload: any): string {
-  if (!payload) return "";
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<img[^>]*>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/?(p|div|li|tr|blockquote|h[1-6])[^>]*>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function extractBodies(payload: gmail_v1.Schema$MessagePart | null | undefined): { text: string; html?: string } {
+  if (!payload) return { text: "" };
 
   if (payload.parts && payload.parts.length > 0) {
-    // Prefer text/plain, fall back to text/html
-    const plain = payload.parts.find((p: any) => p.mimeType === "text/plain");
-    if (plain) return decodeGmailBase64(plain.body?.data ?? "");
+    const plain = payload.parts.find((p) => p.mimeType === "text/plain");
+    const htmlPart = payload.parts.find((p) => p.mimeType === "text/html");
+    const rawHtml = htmlPart ? decodeGmailBase64(htmlPart.body?.data ?? "") : undefined;
 
-    const html = payload.parts.find((p: any) => p.mimeType === "text/html");
-    if (html) return decodeGmailBase64(html.body?.data ?? "");
+    if (plain) return { text: decodeGmailBase64(plain.body?.data ?? ""), html: rawHtml };
+    if (rawHtml) return { text: htmlToText(rawHtml), html: rawHtml };
 
-    // Recurse into nested multipart
     for (const part of payload.parts) {
-      const text = extractBody(part);
-      if (text) return text;
+      const result = extractBodies(part);
+      if (result.text) return result;
     }
   }
 
   if (payload.body?.data) {
-    return decodeGmailBase64(payload.body.data);
+    const decoded = decodeGmailBase64(payload.body.data);
+    if (payload.mimeType === "text/html") return { text: htmlToText(decoded), html: decoded };
+    return { text: decoded };
   }
 
-  return "";
+  return { text: "" };
 }
 
 function decodeGmailBase64(data: string): string {

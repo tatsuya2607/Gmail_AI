@@ -16,55 +16,26 @@
   --mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --sans: var(--font-inter), "Noto Sans JP", system-ui, -apple-system, sans-serif;
 
-  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 40px 1fr 26px;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--fg);
   font-family: var(--sans);
   font-size: 13px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: 26px;
 }
 
 .home-page *, .home-page *::before, .home-page *::after { box-sizing: border-box; }
 
-/* ── Titlebar ── */
-.home-page .titlebar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  height: 40px;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, #131316 0%, #0e0e10 100%);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  user-select: none;
-}
-.home-page .brand { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 12.5px; letter-spacing: -.01em; }
-.home-page .brand-mark {
-  width: 16px; height: 16px; border-radius: 4px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  display: inline-flex; align-items: center; justify-content: center;
-  color: white; font-family: var(--mono); font-size: 9px; font-weight: 700; flex-shrink: 0;
-}
-.home-page .tb-path { color: var(--fg-mute); font-family: var(--mono); font-size: 11.5px; }
-.home-page .tb-right {
-  margin-left: auto;
-  display: flex; align-items: center; gap: 12px;
-  color: var(--fg-mute); font-size: 11.5px;
-}
-.home-page .kbd {
-  font-family: var(--mono); font-size: 10.5px;
-  padding: 1.5px 5px; border: 1px solid var(--line-2);
-  border-radius: 3px; background: #0e0e10; color: var(--fg-dim);
-}
-
 /* ── Page container ── */
 .home-page .page-main {
+  overflow-y: auto;
   max-width: 680px;
   margin: 0 auto;
+  width: 100%;
   padding: 36px 24px 60px;
 }
 
@@ -135,8 +106,9 @@
 .home-page .acct-info { flex: 1; min-width: 0; }
 .home-page .acct-email {
   font-size: 13.5px; font-weight: 600; color: var(--accent);
-  text-decoration: none; display: block; truncate: overflow;
+  text-decoration: none; display: block;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  -webkit-tap-highlight-color: transparent;
 }
 .home-page .acct-email:hover { color: #93c5fd; }
 .home-page .acct-name { font-size: 12px; color: var(--fg-dim); margin-top: 2px; }
@@ -145,7 +117,7 @@
 .home-page .acct-link {
   font-size: 12px; color: var(--fg-mute); text-decoration: none;
   display: flex; align-items: center; gap: 4px;
-  transition: color .15s;
+  transition: color .15s; -webkit-tap-highlight-color: transparent;
 }
 .home-page .acct-link:hover { color: var(--fg); }
 .home-page .status-dot {
@@ -178,23 +150,43 @@
 .home-page .empty h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
 .home-page .empty p { font-size: 12.5px; color: var(--fg-mute); }
 
-/* ── Status bar ── */
-.home-page .statusbar {
-  position: fixed; bottom: 0; left: 0; right: 0; height: 26px;
-  display: flex; align-items: center; padding: 0 12px;
-  border-top: 1px solid var(--line); background: #0c0c0e;
-  font-family: var(--mono); font-size: 10.5px; color: var(--fg-mute);
-  z-index: 10;
+/* ── HomeHeader modal ── */
+.home-modal-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
 }
-.home-page .sb-item {
-  display: flex; align-items: center; gap: 6px;
-  padding-right: 14px; margin-right: 14px;
-  border-right: 1px solid var(--line); white-space: nowrap;
+.home-modal {
+  background: #131316; border: 1px solid var(--line-2);
+  border-radius: 12px; width: 340px; max-width: calc(100vw - 32px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
 }
-.home-page .sb-right { margin-left: auto; border-right: none; padding-right: 0; margin-right: 0; }
-.home-page .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--good); box-shadow: 0 0 6px rgba(16,185,129,.55);
+.home-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--line);
+  font-size: 13px; font-weight: 600;
+}
+.home-modal-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--fg-mute); padding: 2px 6px;
+}
+.home-modal-body { padding: 16px; }
+.home-settings-label {
+  font-family: var(--mono); font-size: 10px;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: var(--fg-mute); margin-bottom: 10px;
+}
+.home-theme-toggle { display: flex; gap: 6px; }
+.home-theme-toggle button {
+  flex: 1; padding: 6px 0; border-radius: 6px; font-size: 12px;
+  border: 1px solid var(--line); background: transparent;
+  color: var(--fg-dim); cursor: pointer; font-family: var(--sans);
+  transition: background .12s, color .12s, border-color .12s;
+}
+.home-theme-toggle button:hover { background: var(--panel-2); color: var(--fg); }
+.home-theme-toggle button.on {
+  background: var(--accent-s); color: var(--accent);
+  border-color: rgba(59,130,246,.35);
 }
 
 /* ── Light theme ── */
@@ -212,7 +204,11 @@ html[data-theme="light"] .home-page {
   --accent-s: rgba(37, 99, 235, 0.1);
   --good: #059669;
 }
-html[data-theme="light"] .home-page .titlebar {
-  background: linear-gradient(180deg, #f8f8fa 0%, #f3f3f5 100%);
-}
-html[data-theme="light"] .home-page .kbd { background: #ebebed; color: var(--fg-dim); border-color: var(--line-2); }
+html[data-theme="light"] .home-page .account-card:hover { background: var(--panel-2); border-color: var(--line-2); }
+html[data-theme="light"] .home-page .acct-email:hover { color: #1d4ed8; }
+html[data-theme="light"] .home-page .link-btn:hover { background: var(--panel-2); color: var(--fg); }
+html[data-theme="light"] .home-page .btn-primary:hover { background: #1d4ed8; }
+html[data-theme="light"] .home-modal { background: #ffffff; border-color: var(--line); box-shadow: 0 8px 32px rgba(0,0,0,0.14); }
+html[data-theme="light"] .home-modal-head { border-color: var(--line); }
+html[data-theme="light"] .home-theme-toggle button:hover { background: #f0f0f2; }
+html[data-theme="light"] .home-theme-toggle button.on { background: rgba(37,99,235,0.08); color: #2563eb; border-color: rgba(37,99,235,0.3); }
