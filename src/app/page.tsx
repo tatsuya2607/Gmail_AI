@@ -2,6 +2,8 @@ import "./home.css";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import db from "@/lib/db";
+import { AppFooter } from "@/components/AppFooter";
+import { HomeHeader } from "./_components/HomeHeader";
 import { DeleteAccountButton } from "./_components/DeleteAccountButton";
 
 interface Account {
@@ -31,17 +33,7 @@ export default async function Home({
   return (
     <div className="home-page">
 
-      {/* Titlebar */}
-      <div className="titlebar">
-        <div className="brand">
-          <span className="brand-mark">G</span>
-          Gmail AI Reply
-        </div>
-        <span className="tb-path">/</span>
-        <div className="tb-right">
-          <span><span className="kbd">⌘K</span> コマンド</span>
-        </div>
-      </div>
+      <HomeHeader />
 
       {/* Main */}
       <div className="page-main">
@@ -81,10 +73,6 @@ export default async function Home({
           <div className="stat-card">
             <div className="stat-val">{accounts.length}</div>
             <div className="stat-label">連携アカウント</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-val">{accounts.length * 20}</div>
-            <div className="stat-label">表示可能なメール</div>
           </div>
           <div className="stat-card">
             <div className="stat-val">
@@ -145,12 +133,7 @@ export default async function Home({
         )}
       </div>
 
-      {/* Status bar */}
-      <div className="statusbar">
-        <div className="sb-item"><span className="dot" />接続済み</div>
-        <div className="sb-item">{accounts.length} accounts</div>
-        <div className="sb-right">Gmail AI Reply</div>
-      </div>
+      <AppFooter right={`${accounts.length} accounts`} />
 
     </div>
   );

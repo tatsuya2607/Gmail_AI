@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { trashMessage } from "@/lib/google";
 import db from "@/lib/db";
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const accountId = req.nextUrl.searchParams.get("accountId");
+  if (!accountId) return NextResponse.json({ error: "accountId required" }, { status: 400 });
+
+  db.prepare("DELETE FROM local_trash WHERE message_id = ? AND account_id = ?").run(id, accountId);
+  return NextResponse.json({ ok: true });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

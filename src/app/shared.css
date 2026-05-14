@@ -1,0 +1,122 @@
+/* ─────────────────────────────────────────
+   Shared shell components
+   Relies on CSS custom properties defined
+   by parent page scope (.inbox-page / .compose-page / etc.)
+───────────────────────────────────────── */
+
+/* ── App Header ── */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  height: 40px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, #131316 0%, #0e0e10 100%);
+  user-select: none;
+  flex-shrink: 0;
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+}
+.app-brand-mark {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.app-path {
+  color: var(--fg-mute);
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+.app-path .sep {
+  margin: 0 6px;
+  color: var(--fg-faint);
+}
+.app-header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-header-right .icon-btn {
+  width: 26px; height: 26px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid transparent; border-radius: 5px;
+  color: var(--fg-mute); cursor: pointer; background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit; font-size: inherit;
+}
+.app-header-right .icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--fg);
+  border-color: var(--line);
+}
+
+/* ── App Footer ── */
+.app-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 12px;
+  height: 26px;
+  border-top: 1px solid var(--line);
+  background: #0c0c0e;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--fg-mute);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.app-footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--good);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.55);
+  flex-shrink: 0;
+}
+.app-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.app-footer-item.right {
+  margin-left: auto;
+}
+.app-footer-item:not(.right) + .app-footer-item {
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+/* ── Light theme ── */
+html[data-theme="light"] .app-header {
+  background: linear-gradient(180deg, #f8f8fa 0%, #f3f3f5 100%);
+}
+html[data-theme="light"] .app-header-right .icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: var(--line);
+}
+html[data-theme="light"] .app-footer {
+  background: #f0f0f2;
+  border-color: var(--line);
+}
+html[data-theme="light"] .app-footer-dot {
+  background: #059669;
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.55);
+}
