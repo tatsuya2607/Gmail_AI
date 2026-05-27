@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { GmailMessageDetail } from "@/lib/google";
-import { AppHeader } from "@/components/AppHeader";
-import { AppFooter } from "@/components/AppFooter";
+import { AppTitlebar } from "@/components/AppTitlebar";
+import { AppStatusbar } from "@/components/AppStatusbar";
 import { PageToolbar } from "@/components/PageToolbar";
 import { Icon } from "./Icon";
 import { SourcePane } from "./SourcePane";
@@ -52,7 +52,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
     const s = message.subject || "";
     return s.startsWith("Re:") ? s : `Re: ${s}`;
   });
-  const [leftPct, setLeftPct] = useState(50);
+  const [leftPct, setLeftPct] = useState(40);
 
   const streamTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -209,17 +209,12 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
 
   return (
     <div className="compose-page">
-      <AppHeader
+      <AppTitlebar
         pathSegments={[
           { label: "inbox" },
-          { label: (message.subject || "no subject").slice(0, 32) },
+          { label: message.id.slice(0, 10) },
           { label: "reply", dim: true },
         ]}
-        right={
-          <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}>
-            <Icon name="settings" size={14} />
-          </button>
-        }
       />
 
       <PageToolbar
@@ -227,13 +222,18 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         accounts={accounts}
         crumbs={[
           { icon: "home", href: "/" },
-          { icon: "inbox", label: "Inbox", href: `/account/${encodeURIComponent(accountId)}` },
-          { icon: "template", label: "Templates", href: "/templates" },
+          { icon: "inbox", href: `/account/${encodeURIComponent(accountId)}` },
+          { icon: "template", href: "/templates" },
         ]}
         tools={
-          <a href="/templates" className="icon-btn" title="テンプレート管理">
-            <Icon name="template" size={14} />
-          </a>
+          <>
+            <a href="/templates" className="icon-btn" title="テンプレート管理">
+              <Icon name="template" size={14} />
+            </a>
+            <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}>
+              <Icon name="settings" size={14} />
+            </button>
+          </>
         }
       />
 
@@ -274,7 +274,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         />
       </div>
 
-      <AppFooter right={`claude ${model === "haiku" ? "haiku-4-5" : "sonnet-4-6"}`} />
+      <AppStatusbar right={`claude ${model === "haiku" ? "haiku-4-5" : "sonnet-4-6"}`} />
 
       {settingsOpen && (
         <SettingsModal
