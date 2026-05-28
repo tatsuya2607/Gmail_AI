@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0 12px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
   position: relative;
@@ -162,7 +162,7 @@
   align-items: center;
   gap: 10px;
   height: 36px;
-  padding: 0 14px;
+  padding: 0 24px;
   border-bottom: 1px solid var(--line);
   background: var(--panel-2);
   color: var(--fg-mute);
@@ -327,7 +327,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 8px 24px;
   border-bottom: 1px solid var(--line);
   background: #0b0b0d;
   flex-shrink: 0;
@@ -409,7 +409,7 @@
   grid-template-columns: 4px 20px 28px 200px 1fr 200px 92px;
   align-items: center;
   gap: 12px;
-  padding: 6px 16px;
+  padding: 6px 24px;
   border-bottom: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 10px;
@@ -432,7 +432,7 @@
   grid-template-columns: 4px 20px 20px 26px 180px 1fr 160px 88px;
   align-items: center;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 10px 24px;
   border-bottom: 1px solid var(--line);
   cursor: pointer;
   position: relative;
@@ -659,21 +659,8 @@ html[data-theme="light"] .inbox-page .pane-head.trash-head { background: rgba(23
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 38%;
-  flex-shrink: 0;
-}
-.inbox-page .row .snippet {
-  color: var(--fg-mute);
-  font-size: 12.5px;
   min-width: 0;
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.inbox-page .row .snippet::before {
-  content: "— ";
-  color: var(--fg-faint);
 }
 .inbox-page .row .tags {
   display: flex;
@@ -765,7 +752,7 @@ html[data-theme="light"] .inbox-page .pane-head.trash-head { background: rgba(23
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px 6px;
+  padding: 10px 24px 6px;
   font-family: var(--mono);
   font-size: 10px;
   color: var(--fg-mute);

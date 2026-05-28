@@ -67,7 +67,6 @@ export function EmailRow({
       </span>
       <span className="subj-block">
         <span className="subj">{msg.subject || "(件名なし)"}</span>
-        <span className="snippet">{msg.snippet}</span>
       </span>
       <span className="tags">
         {msgLabels.map((label) => (

@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 0 14px;
+  padding: 0 24px;
   height: 40px;
   border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, #131316 0%, #0e0e10 100%);
@@ -72,7 +72,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 0 12px;
+  padding: 0 24px;
   height: 26px;
   border-top: 1px solid var(--line);
   background: #0c0c0e;
