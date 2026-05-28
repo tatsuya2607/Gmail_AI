@@ -299,6 +299,8 @@ function decodeGmailBase64(data: string): string {
 
 export interface SendOptions {
   to: string;
+  cc?: string;
+  bcc?: string;
   subject: string;
   body: string;
   inReplyTo?: string;
@@ -332,11 +334,15 @@ export async function sendMessage(accountId: string, opts: SendOptions): Promise
 
   const lines = [
     `To: ${opts.to}`,
+  ];
+  if (opts.cc) lines.push(`Cc: ${opts.cc}`);
+  if (opts.bcc) lines.push(`Bcc: ${opts.bcc}`);
+  lines.push(
     `Subject: ${subject}`,
     "MIME-Version: 1.0",
     "Content-Type: text/plain; charset=utf-8",
     "Content-Transfer-Encoding: 7bit",
-  ];
+  );
   if (opts.inReplyTo) lines.push(`In-Reply-To: ${opts.inReplyTo}`);
   if (opts.references) lines.push(`References: ${opts.references}`);
   lines.push("", opts.body);

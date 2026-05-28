@@ -20,7 +20,7 @@ export function EmailRow({
   msg, accountId, isLoading, onNavigate,
   isStarred, onStar, onToggleSelect, isSelected, msgLabels,
 }: Props) {
-  const { name, org } = parseSender(msg.from);
+  const { name } = parseSender(msg.from);
   const initials = getInitials(name || msg.from);
   const grad = getGradient(msg.from);
   const href = `/compose/${msg.id}?accountId=${encodeURIComponent(accountId)}`;
@@ -63,10 +63,10 @@ export function EmailRow({
       </span>
       <span className="from-block">
         <span className="from">{name || msg.from}</span>
-        <span className="org">{org}</span>
       </span>
       <span className="subj-block">
         <span className="subj">{msg.subject || "(件名なし)"}</span>
+        <span className="snippet">{msg.snippet}</span>
       </span>
       <span className="tags">
         {msgLabels.map((label) => (

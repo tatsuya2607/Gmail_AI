@@ -3,8 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { GmailMessageDetail } from "@/lib/google";
-import { AppTitlebar } from "@/components/AppTitlebar";
-import { AppStatusbar } from "@/components/AppStatusbar";
+import { AppHeader } from "@/components/AppHeader";
+import { AppFooter } from "@/components/AppFooter";
 import { PageToolbar } from "@/components/PageToolbar";
 import { Icon } from "./Icon";
 import { SourcePane } from "./SourcePane";
@@ -59,10 +59,16 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
 
   const currentAccount = accounts.find((a) => a.id === accountId);
 
-  const toHeader = (() => {
+  const initialToHeader = (() => {
     const m = message.from.match(/<([^>]+)>/);
     return m ? m[1] : message.from;
   })();
+
+  const [toList, setToList] = useState<string[]>([initialToHeader]);
+  const [ccList, setCcList] = useState<string[]>([]);
+  const [bccList, setBccList] = useState<string[]>([]);
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
 
   useEffect(() => {
     return () => { if (streamTimerRef.current) clearInterval(streamTimerRef.current); };
@@ -164,7 +170,7 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
   }
 
   async function handleSend() {
-    if (!displayedReply.trim()) return;
+    if (!displayedReply.trim() || toList.length === 0) return;
     setSendError(null);
     const refs = [message.references, message.messageId].filter(Boolean).join(" ").trim();
 
@@ -173,7 +179,11 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          accountId, to: toHeader, subject: subjectLine,
+          accountId,
+          to: toList.join(", "),
+          cc: ccList.length > 0 ? ccList.join(", ") : undefined,
+          bcc: bccList.length > 0 ? bccList.join(", ") : undefined,
+          subject: subjectLine,
           replyBody: displayedReply,
           inReplyTo: message.messageId || undefined,
           references: refs || undefined,
@@ -205,16 +215,21 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
   }
 
   const canGenerate = userPrompt.trim().length > 0 && phase !== "thinking" && phase !== "streaming";
-  const canSend = (phase === "editable" || phase === "streaming") && displayedReply.trim().length > 0;
+  const canSend = (phase === "editable" || phase === "streaming") && displayedReply.trim().length > 0 && toList.length > 0;
 
   return (
     <div className="compose-page">
-      <AppTitlebar
+      <AppHeader
         pathSegments={[
           { label: "inbox" },
           { label: message.id.slice(0, 10) },
           { label: "reply", dim: true },
         ]}
+        right={
+          <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}>
+            <Icon name="settings" size={14} />
+          </button>
+        }
       />
 
       <PageToolbar
@@ -222,19 +237,9 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
         accounts={accounts}
         crumbs={[
           { icon: "home", href: "/" },
-          { icon: "inbox", href: `/account/${encodeURIComponent(accountId)}` },
-          { icon: "template", href: "/templates" },
+          { icon: "inbox", label: "Inbox", href: `/account/${encodeURIComponent(accountId)}` },
+          { icon: "template", label: "Templates", href: "/templates" },
         ]}
-        tools={
-          <>
-            <a href="/templates" className="icon-btn" title="テンプレート管理">
-              <Icon name="template" size={14} />
-            </a>
-            <button className="icon-btn" title="設定" onClick={() => setSettingsOpen(true)}>
-              <Icon name="settings" size={14} />
-            </button>
-          </>
-        }
       />
 
       <div className="main" ref={containerRef}>
@@ -267,14 +272,21 @@ export function ComposeClient({ message, templates, accountId, accounts }: Props
           onGenerate={handleGenerate}
           onSend={handleSend}
           onKeyDown={handleKeyDown}
-          currentAccount={currentAccount}
-          accountId={accountId}
-          toHeader={toHeader}
+          toList={toList}
+          setToList={setToList}
+          ccList={ccList}
+          setCcList={setCcList}
+          bccList={bccList}
+          setBccList={setBccList}
+          showCc={showCc}
+          setShowCc={setShowCc}
+          showBcc={showBcc}
+          setShowBcc={setShowBcc}
           style={{ flex: 1 }}
         />
       </div>
 
-      <AppStatusbar right={`claude ${model === "haiku" ? "haiku-4-5" : "sonnet-4-6"}`} />
+      <AppFooter right={`claude ${model === "haiku" ? "haiku-4-5" : "sonnet-4-6"}`} />
 
       {settingsOpen && (
         <SettingsModal

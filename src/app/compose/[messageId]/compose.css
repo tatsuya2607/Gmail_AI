@@ -589,6 +589,14 @@ html[data-theme="light"] .compose-page .src-body-iframe {
   font-size: 10.5px;
   color: var(--fg-mute);
 }
+.compose-page .recip-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+.compose-page .recip-stack .field { gap: 5px; }
 .compose-page .subject-row {
   display: flex;
   align-items: baseline;

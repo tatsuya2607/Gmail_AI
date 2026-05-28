@@ -3,7 +3,7 @@ import { sendMessage } from "@/lib/google";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { accountId, to, subject, replyBody, inReplyTo, references, threadId } = body;
+  const { accountId, to, cc, bcc, subject, replyBody, inReplyTo, references, threadId } = body;
 
   if (!accountId || !to || !subject || !replyBody) {
     return NextResponse.json(
@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
   try {
     await sendMessage(accountId, {
       to,
+      cc,
+      bcc,
       subject,
       body: replyBody,
       inReplyTo,

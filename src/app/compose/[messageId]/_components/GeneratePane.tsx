@@ -2,17 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "./Icon";
+import { RecipientInput } from "@/components/RecipientInput";
 
 interface Template {
   id: number;
   name: string;
   prompt: string;
-}
-
-interface Account {
-  id: string;
-  email: string;
-  name: string | null;
 }
 
 type Phase = "idle" | "thinking" | "streaming" | "editable";
@@ -39,9 +34,16 @@ interface Props {
   onGenerate: () => void;
   onSend: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-  currentAccount: Account | undefined;
-  accountId: string;
-  toHeader: string;
+  toList: string[];
+  setToList: (v: string[]) => void;
+  ccList: string[];
+  setCcList: (v: string[]) => void;
+  bccList: string[];
+  setBccList: (v: string[]) => void;
+  showCc: boolean;
+  setShowCc: (v: boolean) => void;
+  showBcc: boolean;
+  setShowBcc: (v: boolean) => void;
   style?: React.CSSProperties;
 }
 
@@ -54,7 +56,8 @@ export function GeneratePane({
   subjectLine, setSubjectLine,
   canGenerate, canSend,
   onGenerate, onSend, onKeyDown,
-  currentAccount, accountId, toHeader,
+  toList, setToList, ccList, setCcList, bccList, setBccList,
+  showCc, setShowCc, showBcc, setShowBcc,
   style,
 }: Props) {
   const [showTmplDropdown, setShowTmplDropdown] = useState(false);
@@ -214,6 +217,51 @@ export function GeneratePane({
             </div>
           </div>
 
+          <div className="recip-stack">
+            <RecipientInput
+              label="To"
+              values={toList}
+              onChange={setToList}
+              placeholder="recipient@example.com"
+              rightSlot={
+                <span className="recip-toggle">
+                  {!showCc && (
+                    <button type="button" onClick={() => setShowCc(true)}>Cc</button>
+                  )}
+                  {!showBcc && (
+                    <button type="button" onClick={() => setShowBcc(true)}>Bcc</button>
+                  )}
+                </span>
+              }
+            />
+            {showCc && (
+              <RecipientInput
+                label="Cc"
+                values={ccList}
+                onChange={setCcList}
+                placeholder="cc@example.com"
+                rightSlot={
+                  <span className="recip-toggle">
+                    <button type="button" onClick={() => { setShowCc(false); setCcList([]); }}>✕</button>
+                  </span>
+                }
+              />
+            )}
+            {showBcc && (
+              <RecipientInput
+                label="Bcc"
+                values={bccList}
+                onChange={setBccList}
+                placeholder="bcc@example.com"
+                rightSlot={
+                  <span className="recip-toggle">
+                    <button type="button" onClick={() => { setShowBcc(false); setBccList([]); }}>✕</button>
+                  </span>
+                }
+              />
+            )}
+          </div>
+
           <div className="subject-row">
             <span className="subject-prefix">Subject:</span>
             <input
@@ -262,11 +310,6 @@ export function GeneratePane({
         {/* ── アクションバー ── */}
         <div className="actions">
           <div className="spacer" />
-          <div className="meta-mini">
-            <span>from <b>{currentAccount?.email ?? accountId}</b></span>
-            <span>·</span>
-            <span>to <b>{toHeader}</b></span>
-          </div>
           <button className="btn primary" disabled={!canSend} onClick={onSend}>
             <Icon name="send" size={13} />
             送信
